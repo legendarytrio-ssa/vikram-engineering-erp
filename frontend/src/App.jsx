@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Route, Routes } from 'react-router-dom'
 import HomePage from './components/home'
 import OperationsDashboard from './components/operationsDashboard'
-import AccountsDashboard from './components/AccountsDashboard'
+import AccountsDashboard from './components/accountsDashboard'
 import SalesDashboard from './components/salesDashboard'
 function App() {
   const [count, setCount] = useState(0)
