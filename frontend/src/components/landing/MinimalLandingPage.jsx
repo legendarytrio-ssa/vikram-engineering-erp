@@ -1,11 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import {
-  Link,
-  Navigate,
-  Route,
-  Routes,
-  useNavigate,
-} from "react-router-dom";
+import { Link, Navigate, Route, Routes, useNavigate } from "react-router-dom";
+import axios from "axios";
 
 import {
   ArrowLeft,
@@ -24,40 +19,18 @@ import {
   X,
 } from "lucide-react";
 
-import AllClientsForm from "../../pages/AllClientsForm";
-
-const CLIENTS_KEY = "vikram-erp-clients-v1";
-const TENDERS_KEY = "vikram-erp-tenders-v1";
-
-function readStorage(key, fallback = []) {
-  try {
-    const value = localStorage.getItem(key);
-    return value ? JSON.parse(value) : fallback;
-  } catch {
-    return fallback;
-  }
-}
+const API_BASE = "http://localhost:3000/api";
 
 /* Shared header */
-
 function Brand() {
   return (
-    <Link
-      to="/"
-      className="flex items-center gap-3"
-      aria-label="Vikram Engineering home"
-    >
+    <Link to="/" className="flex items-center gap-3" aria-label="Vikram Engineering home">
       <span className="grid h-10 w-10 place-items-center rounded-xl bg-emerald-600 text-white">
         <Building2 size={19} strokeWidth={1.8} />
       </span>
-
       <span>
-        <span className="block text-sm font-semibold tracking-tight text-zinc-100">
-          Vikram Engineering
-        </span>
-        <span className="mt-0.5 block text-[11px] tracking-[0.13em] text-zinc-400">
-          ERP WORKSPACE
-        </span>
+        <span className="block text-sm font-semibold tracking-tight text-zinc-100">Vikram Engineering</span>
+        <span className="mt-0.5 block text-[11px] tracking-[0.13em] text-zinc-400">ERP WORKSPACE</span>
       </span>
     </Link>
   );
@@ -67,7 +40,6 @@ function Header({ eyebrow = "TENDER MANAGEMENT" }) {
   return (
     <header className="flex flex-col gap-5 border-b border-zinc-800 pb-5 sm:flex-row sm:items-center sm:justify-between">
       <Brand />
-
       <div className="flex items-center gap-2 self-start rounded-full border border-zinc-800 bg-zinc-900 px-3 py-2 text-xs font-medium text-zinc-300 sm:self-auto">
         <span className="h-2 w-2 rounded-full bg-emerald-500" />
         {eyebrow}
@@ -77,14 +49,11 @@ function Header({ eyebrow = "TENDER MANAGEMENT" }) {
 }
 
 /* Homepage */
-
 function Metric({ label, value }) {
   return (
     <div className="rounded-xl border border-zinc-800 p-4">
       <p className="text-xs text-zinc-400">{label}</p>
-      <p className="mt-2 text-3xl font-semibold tracking-tight text-zinc-100">
-        {value}
-      </p>
+      <p className="mt-2 text-3xl font-semibold tracking-tight text-zinc-100">{value}</p>
     </div>
   );
 }
@@ -92,18 +61,13 @@ function Metric({ label, value }) {
 export function HomePage() {
   const navigate = useNavigate();
 
-  const [tenders, setTenders] = useState(() =>
-    readStorage(TENDERS_KEY)
-  );
-
-  const [clients] = useState(() =>
-    readStorage(CLIENTS_KEY)
-  );
+  const [tenders, setTenders] = useState([]);
+  const [clients, setClients] = useState([]);
 
   useEffect(() => {
-    const sync = () => setTenders(readStorage(TENDERS_KEY));
-    window.addEventListener("storage", sync);
-    return () => window.removeEventListener("storage", sync);
+    // Fetch data using exact endpoint matching
+    axios.get(`${API_BASE}/tenders/getTenders`).then((res) => setTenders(res.data)).catch(console.error);
+    axios.get(`${API_BASE}/clients/getClients`).then((res) => setClients(res.data)).catch(console.error);
   }, []);
 
   return (
@@ -117,69 +81,43 @@ export function HomePage() {
               <Sparkles size={13} className="text-emerald-400" />
               Your tender desk
             </div>
-
             <h1 className="max-w-2xl text-4xl font-semibold leading-[1.1] tracking-[-0.045em] sm:text-5xl lg:text-6xl">
-              Good work starts with a{" "}
-              <span className="text-emerald-400">
-                clear record.
-              </span>
+              Good work starts with a <span className="text-emerald-400">clear record.</span>
             </h1>
-
             <p className="mt-5 max-w-xl text-base leading-7 text-zinc-400 sm:text-lg">
-              Keep tender details, client contacts, and the next
-              steps in one quiet, organised workspace.
+              Keep tender details, client contacts, and the next steps in one quiet, organised workspace.
             </p>
-
             <button
               onClick={() => navigate("/tenders/new")}
               className="mt-8 inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-3.5 text-sm font-semibold text-white shadow-lg shadow-emerald-900/20 transition hover:-translate-y-0.5 hover:bg-emerald-500 focus:outline-none focus:ring-4 focus:ring-emerald-500/20"
             >
-              <FilePlus2 size={17} />
-              Add Tender
-              <ArrowUpRight size={16} />
+              <FilePlus2 size={17} /> Add Tender <ArrowUpRight size={16} />
             </button>
           </div>
 
           <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-5 shadow-lg shadow-black/20 sm:p-6">
             <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-zinc-300">
-                Workspace snapshot
-              </span>
+              <span className="text-sm font-medium text-zinc-300">Workspace snapshot</span>
               <ClipboardList size={18} className="text-zinc-500" />
             </div>
-
             <div className="mt-6 grid grid-cols-2 gap-3">
-              <Metric
-                label="Tenders saved"
-                value={tenders.length}
-              />
-              <Metric
-                label="Client records"
-                value={clients.length}
-              />
+              <Metric label="Tenders saved" value={tenders.length} />
+              <Metric label="Client records" value={clients.length} />
             </div>
-
             <div className="mt-5 flex items-start gap-3 rounded-xl bg-zinc-950 p-4">
               <span className="mt-0.5 rounded-lg bg-emerald-500/10 p-2 text-emerald-400">
                 <Users size={16} />
               </span>
-
               <div>
-                <p className="text-sm font-semibold text-zinc-200">
-                  Start with your client list
-                </p>
-
+                <p className="text-sm font-semibold text-zinc-200">Start with your client list</p>
                 <p className="mt-1 text-xs leading-5 text-zinc-400">
-                  Company and CEO records power the linked fields
-                  in each tender.
+                  Company and CEO records power the linked fields in each tender.
                 </p>
-
                 <Link
                   to="/clients/new"
                   className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-emerald-400 hover:text-emerald-300 hover:underline"
                 >
-                  Add a client
-                  <ArrowUpRight size={13} />
+                  Add a client <ArrowUpRight size={13} />
                 </Link>
               </div>
             </div>
@@ -189,17 +127,10 @@ export function HomePage() {
         <section className="border-t border-zinc-800 pt-7">
           <div className="mb-5 flex items-end justify-between gap-3">
             <div>
-              <p className="text-xs font-semibold tracking-[0.15em] text-zinc-500">
-                RECENT ACTIVITY
-              </p>
-              <h2 className="mt-2 text-xl font-semibold tracking-tight text-zinc-100">
-                Your tenders
-              </h2>
+              <p className="text-xs font-semibold tracking-[0.15em] text-zinc-500">RECENT ACTIVITY</p>
+              <h2 className="mt-2 text-xl font-semibold tracking-tight text-zinc-100">Your tenders</h2>
             </div>
-
-            <span className="text-xs text-zinc-500">
-              {tenders.length} total
-            </span>
+            <span className="text-xs text-zinc-500">{tenders.length} total</span>
           </div>
 
           {tenders.length === 0 ? (
@@ -207,16 +138,10 @@ export function HomePage() {
               <span className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-emerald-500/10 text-emerald-400">
                 <ClipboardList size={21} />
               </span>
-
-              <h3 className="mt-4 text-sm font-semibold text-zinc-200">
-                No tenders yet
-              </h3>
-
+              <h3 className="mt-4 text-sm font-semibold text-zinc-200">No tenders yet</h3>
               <p className="mx-auto mt-1 max-w-sm text-sm leading-6 text-zinc-400">
-                When you add a tender, it will appear here for
-                quick access.
+                When you add a tender, it will appear here for quick access.
               </p>
-
               <button
                 onClick={() => navigate("/tenders/new")}
                 className="mt-5 text-sm font-semibold text-emerald-400 hover:text-emerald-300 hover:underline"
@@ -226,31 +151,26 @@ export function HomePage() {
             </div>
           ) : (
             <div className="overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900">
-              {tenders
-                .slice()
-                .reverse()
-                .map((tender, index) => (
-                  <div
-                    key={tender.id}
-                    className={`flex flex-col gap-2 px-5 py-4 sm:flex-row sm:items-center sm:justify-between ${
-                      index ? "border-t border-zinc-800" : ""
-                    }`}
-                  >
-                    <div>
-                      <p className="text-sm font-semibold text-zinc-200">
-                        {tender.title || "Untitled tender"}
-                      </p>
-
-                      <p className="mt-1 text-xs text-zinc-400">
-                        {tender.companyName} · {tender.ceoName}
-                      </p>
-                    </div>
-
-                    <span className="w-fit rounded-full bg-zinc-800 px-3 py-1 text-xs font-medium text-zinc-300">
-                      Draft
-                    </span>
+              {tenders.map((tender, index) => (
+                <div
+                  key={tender._id}
+                  className={`flex flex-col gap-2 px-5 py-4 sm:flex-row sm:items-center sm:justify-between ${
+                    index ? "border-t border-zinc-800" : ""
+                  }`}
+                >
+                  <div>
+                    <p className="text-sm font-semibold text-zinc-200">
+                      {tender.title || "Untitled tender"}
+                    </p>
+                    <p className="mt-1 text-xs text-zinc-400">
+                      {tender.companyName} · {tender.ceoName}
+                    </p>
                   </div>
-                ))}
+                  <span className="w-fit rounded-full bg-zinc-800 px-3 py-1 text-xs font-medium text-zinc-300">
+                    Draft
+                  </span>
+                </div>
+              ))}
             </div>
           )}
         </section>
@@ -265,30 +185,16 @@ export function HomePage() {
 }
 
 /* Shared form fields */
-
 function FieldLabel({ children, required = false, htmlFor }) {
   return (
-    <label
-      htmlFor={htmlFor}
-      className="mb-2 block text-sm font-medium text-zinc-300"
-    >
+    <label htmlFor={htmlFor} className="mb-2 block text-sm font-medium text-zinc-300">
       {children}
-      {required && (
-        <span className="ml-1 text-rose-500">*</span>
-      )}
+      {required && <span className="ml-1 text-rose-500">*</span>}
     </label>
   );
 }
 
-function TextInput({
-  id,
-  value,
-  onChange,
-  placeholder,
-  required,
-  type = "text",
-  ...props
-}) {
+function TextInput({ id, value, onChange, placeholder, required, type = "text", ...props }) {
   return (
     <input
       id={id}
@@ -304,13 +210,24 @@ function TextInput({
 }
 
 /* Add Tender page */
-
 export function AddTenderPage() {
   const navigate = useNavigate();
 
-  const [clients, setClients] = useState(() =>
-    readStorage(CLIENTS_KEY)
-  );
+  const [clients, setClients] = useState([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const fetchClients = async () => {
+    try {
+      const res = await axios.get(`${API_BASE}/clients/getClients`);
+      setClients(res.data);
+    } catch (err) {
+      console.error("Failed to load clients", err);
+    }
+  };
+
+  useEffect(() => {
+    fetchClients();
+  }, []);
 
   const [companyQuery, setCompanyQuery] = useState("");
   const [selectedCompany, setSelectedCompany] = useState("");
@@ -337,20 +254,10 @@ export function AddTenderPage() {
     );
   }, [clients, companyQuery]);
 
-  const companyFound =
-    selectedCompany &&
-    clients.some(
-      (client) => client.companyName === selectedCompany
-    );
-
-  const selectedClient = clients.find(
-    (client) => client.companyName === selectedCompany
-  );
-
+  const companyFound = selectedCompany && clients.some((client) => client.companyName === selectedCompany);
+  const selectedClient = clients.find((client) => client.companyName === selectedCompany);
   const allowedCeos = selectedClient?.ceos || [];
-
-  const noCompanyMatch =
-    companyQuery.trim().length > 0 && matches.length === 0;
+  const noCompanyMatch = companyQuery.trim().length > 0 && matches.length === 0;
 
   function pickCompany(company) {
     setSelectedCompany(company.companyName);
@@ -361,43 +268,37 @@ export function AddTenderPage() {
   }
 
   function addAttribute() {
-    setExtraAttributes((current) => [
-      ...current,
-      { id: crypto.randomUUID(), name: "", value: "" },
-    ]);
+    setExtraAttributes((current) => [...current, { id: crypto.randomUUID(), name: "", value: "" }]);
   }
 
   function updateAttribute(id, field, value) {
     setExtraAttributes((current) =>
-      current.map((attribute) =>
-        attribute.id === id
-          ? { ...attribute, [field]: value }
-          : attribute
-      )
+      current.map((attribute) => (attribute.id === id ? { ...attribute, [field]: value } : attribute))
     );
   }
 
-  function saveCeo() {
+  async function saveCeo() {
     const name = ceoDraft.trim();
     if (!name || !selectedClient) return;
 
-    const updatedClients = clients.map((client) =>
-      client.companyName === selectedCompany
-        ? {
-            ...client,
-            ceos: [...new Set([...(client.ceos || []), name])],
-          }
-        : client
-    );
-
-    localStorage.setItem(CLIENTS_KEY, JSON.stringify(updatedClients));
-    setClients(updatedClients);
-    setCeoName(name);
-    setCeoDraft("");
-    setShowCeoEditor(false);
+    try {
+      await axios.post(`${API_BASE}/clients/createClients`, {
+        companyName: selectedCompany,
+        ceos: [name],
+      });
+      
+      await fetchClients();
+      
+      setCeoName(name);
+      setCeoDraft("");
+      setShowCeoEditor(false);
+    } catch (err) {
+      console.error(err);
+      setError("Failed to update CEO list.");
+    }
   }
 
-  function submitTender(event) {
+  async function submitTender(event) {
     event.preventDefault();
     setError("");
 
@@ -411,27 +312,30 @@ export function AddTenderPage() {
       return;
     }
 
-    const tender = {
-      id: crypto.randomUUID(),
-      companyName: selectedCompany,
-      ceoName,
-      title: title.trim(),
-      referenceNo: referenceNo.trim(),
-      submissionDate,
-      notes: notes.trim(),
-      attributes: extraAttributes
-        .filter((attribute) => attribute.name.trim())
-        .map(({ name, value }) => ({
-          name: name.trim(),
-          value: value.trim(),
-        })),
-      createdAt: new Date().toISOString(),
-    };
+    setIsSubmitting(true);
 
-    const allTenders = readStorage(TENDERS_KEY);
-    localStorage.setItem(TENDERS_KEY, JSON.stringify([...allTenders, tender]));
-    setSaved(true);
-    setTimeout(() => navigate("/"), 800);
+    try {
+      await axios.post(`${API_BASE}/tenders/createTenders`, {
+        companyName: selectedCompany,
+        ceoName,
+        title: title.trim(),
+        referenceNo: referenceNo.trim(),
+        submissionDate,
+        notes: notes.trim(),
+        attributes: extraAttributes
+          .filter((attribute) => attribute.name.trim())
+          .map(({ name, value }) => ({
+            name: name.trim(),
+            value: value.trim(),
+          })),
+      });
+
+      setSaved(true);
+      setTimeout(() => navigate("/"), 800);
+    } catch (err) {
+      setError(err.response?.data?.error || "Failed to save tender to server.");
+      setIsSubmitting(false);
+    }
   }
 
   return (
@@ -443,25 +347,17 @@ export function AddTenderPage() {
           onClick={() => navigate("/")}
           className="mt-7 inline-flex items-center gap-2 text-sm font-medium text-zinc-400 transition hover:text-zinc-200"
         >
-          <ArrowLeft size={16} />
-          Back to overview
+          <ArrowLeft size={16} /> Back to overview
         </button>
 
         <section className="mb-8 mt-7 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
           <div>
-            <p className="text-xs font-semibold tracking-[0.15em] text-emerald-500">
-              NEW RECORD
-            </p>
-            <h1 className="mt-2 text-3xl font-semibold tracking-[-0.04em] sm:text-4xl">
-              Add tender
-            </h1>
+            <p className="text-xs font-semibold tracking-[0.15em] text-emerald-500">NEW RECORD</p>
+            <h1 className="mt-2 text-3xl font-semibold tracking-[-0.04em] sm:text-4xl">Add tender</h1>
             <p className="mt-3 max-w-xl text-sm leading-6 text-zinc-400">
-              Create a tender record and link it to an existing
-              client. Only the company and its registered CEO
-              are required.
+              Create a tender record and link it to an existing client. Only the company and its registered CEO are required.
             </p>
           </div>
-
           <span className="w-fit rounded-full border border-zinc-800 bg-zinc-900 px-3 py-2 text-xs text-zinc-400">
             Fields marked <span className="text-rose-500">*</span> are mandatory
           </span>
@@ -473,7 +369,6 @@ export function AddTenderPage() {
               <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-emerald-500/10 text-emerald-400">
                 <Building2 size={18} />
               </span>
-
               <div>
                 <h2 className="font-semibold text-zinc-100">Client details</h2>
                 <p className="mt-1 text-sm text-zinc-400">Search your existing client records first.</p>
@@ -483,7 +378,6 @@ export function AddTenderPage() {
             <div className="grid gap-5 md:grid-cols-2">
               <div className="relative">
                 <FieldLabel htmlFor="company" required>Company name</FieldLabel>
-
                 <div className="relative">
                   <Search size={16} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-500" />
                   <TextInput
@@ -509,7 +403,7 @@ export function AddTenderPage() {
                     {matches.map((client) => (
                       <button
                         type="button"
-                        key={client.companyName}
+                        key={client._id}
                         onClick={() => pickCompany(client)}
                         className="flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left transition hover:bg-zinc-700"
                       >
@@ -542,7 +436,6 @@ export function AddTenderPage() {
               <div>
                 <div className="mb-2 flex items-center justify-between gap-3">
                   <FieldLabel htmlFor="ceo" required>Company CEO</FieldLabel>
-
                   {companyFound && (
                     <button
                       type="button"
@@ -581,9 +474,7 @@ export function AddTenderPage() {
                 </div>
 
                 {companyFound && allowedCeos.length === 0 && (
-                  <p className="mt-2 text-xs text-zinc-400">
-                    Add a CEO to this client before saving the tender.
-                  </p>
+                  <p className="mt-2 text-xs text-zinc-400">Add a CEO to this client before saving the tender.</p>
                 )}
               </div>
             </div>
@@ -604,11 +495,7 @@ export function AddTenderPage() {
                   </button>
                 </div>
                 <div className="mt-3 flex flex-col gap-2 sm:flex-row">
-                  <TextInput
-                    value={ceoDraft}
-                    onChange={(event) => setCeoDraft(event.target.value)}
-                    placeholder="Enter CEO full name"
-                  />
+                  <TextInput value={ceoDraft} onChange={(event) => setCeoDraft(event.target.value)} placeholder="Enter CEO full name" />
                   <button
                     type="button"
                     onClick={saveCeo}
@@ -624,9 +511,7 @@ export function AddTenderPage() {
               <div className="mt-5 flex flex-col gap-3 rounded-xl border border-amber-900/50 bg-amber-500/10 p-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <p className="text-sm font-semibold text-zinc-200">Client not in your records?</p>
-                  <p className="mt-1 text-xs leading-5 text-amber-400/80">
-                    Register the company and CEO before creating its tender.
-                  </p>
+                  <p className="mt-1 text-xs leading-5 text-amber-400/80">Register the company and CEO before creating its tender.</p>
                 </div>
                 <Link
                   to="/clients/new"
@@ -740,7 +625,7 @@ export function AddTenderPage() {
           )}
 
           <div className="sticky bottom-3 z-10 flex flex-col-reverse gap-3 rounded-2xl border border-zinc-800 bg-zinc-900/90 p-3 shadow-2xl backdrop-blur-md sm:flex-row sm:items-center sm:justify-between sm:px-5">
-            <p className="px-1 text-xs text-zinc-500">Saved locally for this prototype.</p>
+            <p className="px-1 text-xs text-zinc-500">Connected to local database.</p>
             <div className="flex gap-2">
               <button
                 type="button"
@@ -751,10 +636,10 @@ export function AddTenderPage() {
               </button>
               <button
                 type="submit"
-                disabled={saved}
+                disabled={saved || isSubmitting}
                 className="flex-1 rounded-xl bg-emerald-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-emerald-500 disabled:opacity-50 sm:flex-none"
               >
-                <Check size={15} className="mr-1.5 inline" /> Save tender
+                <Check size={15} className="mr-1.5 inline" /> {isSubmitting ? "Saving..." : "Save tender"}
               </button>
             </div>
           </div>

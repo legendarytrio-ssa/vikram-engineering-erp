@@ -9,6 +9,7 @@ import {
   WorkshopIndex,
 } from "../components/landing/ChapterOverlay";
 import CommissionFooter from "../components/landing/CommissionFooter";
+import axios from "axios";
 
 // Total discrete pages:
 // Step 0: Opening Lockup (Hero)

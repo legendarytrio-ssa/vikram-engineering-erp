@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import axios from "axios";
 
 import {
   ArrowLeft,
@@ -10,15 +11,7 @@ import {
   Users,
 } from "lucide-react";
 
-const CLIENTS_KEY = "vikram-erp-clients-v1";
-
-function getClients() {
-  try {
-    return JSON.parse(localStorage.getItem(CLIENTS_KEY) || "[]");
-  } catch {
-    return [];
-  }
-}
+const API_BASE = "http://localhost:3000/api";
 
 export default function AllClientsForm() {
   const navigate = useNavigate();
@@ -36,8 +29,17 @@ export default function AllClientsForm() {
 
   const [error, setError] = useState("");
   const [saved, setSaved] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const [existing, setExisting] = useState(() => getClients());
+  const [existing, setExisting] = useState([]);
+
+  // Fetch existing clients using exact backend route
+  useEffect(() => {
+    axios
+      .get(`${API_BASE}/clients/getClients`)
+      .then((res) => setExisting(res.data))
+      .catch((err) => console.error("Failed to load existing clients", err));
+  }, []);
 
   useEffect(() => {
     if (!saved) return;
@@ -49,7 +51,7 @@ export default function AllClientsForm() {
     setCeos((current) => current.map((ceo, i) => (i === index ? value : ceo)));
   }
 
-  function saveClient(event) {
+  async function saveClient(event) {
     event.preventDefault();
     setError("");
 
@@ -61,44 +63,24 @@ export default function AllClientsForm() {
       return;
     }
 
-    const allClients = getClients();
-    const existingClient = allClients.find(
-      (client) => client.companyName.toLowerCase() === company.toLowerCase()
-    );
+    setIsSubmitting(true);
 
-    let updated;
-
-    if (existingClient) {
-      updated = allClients.map((client) =>
-        client.companyName === existingClient.companyName
-          ? {
-              ...client,
-              ceos: [...new Set([...(client.ceos || []), ...cleanCeos])],
-              contactEmail: contactEmail.trim() || client.contactEmail || "",
-              phone: phone.trim() || client.phone || "",
-              address: address.trim() || client.address || "",
-              notes: notes.trim() || client.notes || "",
-            }
-          : client
-      );
-    } else {
-      updated = [
-        ...allClients,
-        {
-          companyName: company,
-          ceos: cleanCeos,
-          contactEmail: contactEmail.trim(),
-          phone: phone.trim(),
-          address: address.trim(),
-          notes: notes.trim(),
-          createdAt: new Date().toISOString(),
-        },
-      ];
+    try {
+      await axios.post(`${API_BASE}/clients/createClients`, {
+        companyName: company,
+        ceos: cleanCeos,
+        contactEmail: contactEmail.trim(),
+        phone: phone.trim(),
+        address: address.trim(),
+        notes: notes.trim(),
+      });
+      
+      setSaved(true);
+    } catch (err) {
+      setError(err.response?.data?.error || "Failed to connect to server.");
+    } finally {
+      setIsSubmitting(false);
     }
-
-    localStorage.setItem(CLIENTS_KEY, JSON.stringify(updated));
-    setExisting(updated);
-    setSaved(true);
   }
 
   const duplicate =
@@ -286,7 +268,7 @@ export default function AllClientsForm() {
           )}
 
           <div className="sticky bottom-3 z-10 flex flex-col-reverse gap-3 rounded-2xl border border-zinc-800 bg-zinc-900/90 p-3 shadow-2xl backdrop-blur-md sm:flex-row sm:items-center sm:justify-between sm:px-5">
-            <p className="px-1 text-xs text-zinc-500">Prototype storage: this browser's local storage.</p>
+            <p className="px-1 text-xs text-zinc-500">Connected to local database.</p>
             <div className="flex gap-2">
               <button
                 type="button"
@@ -297,10 +279,10 @@ export default function AllClientsForm() {
               </button>
               <button
                 type="submit"
-                disabled={saved}
+                disabled={saved || isSubmitting}
                 className="flex-1 rounded-xl bg-emerald-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-emerald-500 disabled:opacity-50 sm:flex-none"
               >
-                <Check size={15} className="mr-1.5 inline" /> Save client
+                <Check size={15} className="mr-1.5 inline" /> {isSubmitting ? "Saving..." : "Save client"}
               </button>
             </div>
           </div>
