@@ -1,6 +1,6 @@
 // src/pages/VikramLandingPage.jsx
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { VIKRAM_CHAPTERS } from "../data/VikramLandingData";
+import { VIKRAM_CHAPTERS } from "../../../data/VikramLandingData";
 import ForgeCanvas from "../components/landing/ForgeCanvas";
 import KindleLoader from "../components/landing/KindleLoader";
 import {
