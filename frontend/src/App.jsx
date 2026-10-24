@@ -1,23 +1,24 @@
-import { useState } from 'react'
-import './App.css'
-import { Navigate, Route, Routes } from 'react-router-dom'
-import VikramLandingPage from "./pages/VikramLandingPage"
-import { AddTenderPage, HomePage } from './components/landing/MinimalLandingPage'
-import AllClientsForm from './pages/AllClientsForm'
+
+import "./App.css";
+
+import { Navigate, Route, Routes } from "react-router-dom";
+
+import DepartmentSelection from "./pages/DepartmentSelection";
+import SalesRoutes from "./modules/sales/routes";
 
 function App() {
-
   return (
-    <>
-      <Routes>
-        {/* <Route path='/' element={<VikramLandingPage/>} /> */}
-        <Route path="/" element={<HomePage />} />
-        <Route path="/tenders/new" element={<AddTenderPage />} />
-        <Route path="/clients/new" element={<AllClientsForm />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </>
-  )
+    <Routes>
+      {/* Main ERP Landing */}
+      <Route path="/" element={<DepartmentSelection />} />
+
+      {/* Sales Department */}
+      <Route path="/sales/*" element={<SalesRoutes />} />
+
+      {/* Invalid routes */}
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  );
 }
 
-export default App
+export default App;
