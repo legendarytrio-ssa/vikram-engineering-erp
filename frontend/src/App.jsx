@@ -5,7 +5,7 @@ import { Navigate, Route, Routes } from "react-router-dom";
 
 import DepartmentSelection from "./pages/DepartmentSelection";
 import SalesRoutes from "./modules/sales/Routes.jsx";
-
+//comment added for test
 function App() {
   return (
     <Routes>
