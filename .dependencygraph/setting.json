@@ -1,5 +1,5 @@
 {
-  "entryFilePath": "frontend\\src\\main.jsx",
+  "entryFilePath": "backend\\server.js",
   "alias": false,
   "resolveExtensions": [
     ".js",
