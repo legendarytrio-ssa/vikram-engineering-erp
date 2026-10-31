@@ -1,7 +1,8 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose"
 const { Schema } = mongoose;
 const oid = Schema.Types.ObjectId;
-const { baseOptions, othersField, AttachmentSchema } = require("../shared/common");
+// const { baseOptions, othersField, AttachmentSchema } = require("../shared/common");
+import { baseOptions, othersField, AttachmentSchema } from "../../../shared/common.js";
 
 const TenderSchema = new Schema(
   {
@@ -18,8 +19,7 @@ const TenderSchema = new Schema(
       default: "PENDING",
       index: true,
     },
-    project: { type: oid, ref: "Project" }, // set when the tender goes LIVE
-    createdBy: { type: oid, ref: "User", required: true },
+    // project: { type: oid, ref: "Project" }, // set when the tender goes LIVE
     others: othersField,
   },
   baseOptions
@@ -28,4 +28,5 @@ const TenderSchema = new Schema(
 TenderSchema.index({ title: "text", code: "text" });
 TenderSchema.index({ status: 1, createdAt: -1 });
 
-module.exports = mongoose.model("Tender", TenderSchema);
+// module.exports = mongoose.model("Tender", TenderSchema);
+export default mongoose.model("Tender", TenderSchema);
