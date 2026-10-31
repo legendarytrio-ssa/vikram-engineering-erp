@@ -1,25 +1,3 @@
-// import Tender from "../models/tenders.js";
-
-// export const getTenders = async (req, res) => {
-//   try {
-//     const tenders = await Tender.find().sort({ createdAt: -1 });
-//     res.json(tenders);
-//   } catch (error) {
-//     res.status(500).json({ error: "Server error fetching tenders." });
-//   }
-// };
-
-// export const createTenders = async (req, res) => {
-//   try {
-//     const tender = new Tender(req.body);
-//     const savedTender = await tender.save();
-//     res.status(201).json(savedTender);
-//   } catch (error) {
-//     res.status(400).json({ error: "Failed to save tender." });
-//   }
-// };
-
-
 import mongoose from "mongoose";
 import Tender from "../models/Tender.js";
 import Client from "../models/clients.js";
@@ -28,8 +6,7 @@ export const getTenders = async (req, res) => {
   try {
     const tenders = await Tender.find()
       .sort({ createdAt: -1 })
-      .populate("client")
-      .populate("createdBy", "name email");
+      .populate("client");
 
     return res.status(200).json(tenders);
   } catch (error) {
@@ -52,7 +29,6 @@ export const createTenders = async (req, res) => {
       tenderDocs,
       applicationDocs,
       status,
-      project,
       others,
     } = req.body;
 
@@ -65,7 +41,7 @@ export const createTenders = async (req, res) => {
     ) {
       return res.status(400).json({
         error:
-          "Required fields: code, title, category, client, createdBy.",
+          "Required fields: code, title, category, client.",
       });
     }
 
@@ -91,20 +67,17 @@ export const createTenders = async (req, res) => {
     }
 
     // 4. Validate MongoDB ObjectIds
-    if (
-      !mongoose.isValidObjectId(client) ||
-      !mongoose.isValidObjectId(createdBy)
-    ) {
+    if (!mongoose.isValidObjectId(client)) {
       return res.status(400).json({
-        error: "Invalid client or createdBy ID.",
+        error: "Invalid client ID.",
       });
     }
 
-    if (project && !mongoose.isValidObjectId(project)) {
-      return res.status(400).json({
-        error: "Invalid project ID.",
-      });
-    }
+    // if (project && !mongoose.isValidObjectId(project)) {
+    //   return res.status(400).json({
+    //     error: "Invalid project ID.",
+    //   });
+    // }
 
     // 5. Check whether the client exists
     const existingClient = await Client.findById(client);
@@ -129,12 +102,12 @@ export const createTenders = async (req, res) => {
     }
 
     // 8. Prevent manually setting a project unless your workflow allows it
-    if (project) {
-      return res.status(400).json({
-        error:
-          "A project cannot be assigned during tender creation.",
-      });
-    }
+    // if (project) {
+    //   return res.status(400).json({
+    //     error:
+    //       "A project cannot be assigned during tender creation.",
+    //   });
+    // }
 
     // 9. Create the tender
     const tender = new Tender({

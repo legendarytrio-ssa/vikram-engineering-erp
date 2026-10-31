@@ -2,7 +2,7 @@ import mongoose from "mongoose"
 const { Schema } = mongoose;
 const oid = Schema.Types.ObjectId;
 // const { baseOptions, othersField, AttachmentSchema } = require("../shared/common");
-import { baseOptions, othersField, AttachmentSchema } from "../../../shared/common";
+import { baseOptions, othersField, AttachmentSchema } from "../../../shared/common.js";
 
 const TenderSchema = new Schema(
   {
@@ -19,7 +19,7 @@ const TenderSchema = new Schema(
       default: "PENDING",
       index: true,
     },
-    project: { type: oid, ref: "Project" }, // set when the tender goes LIVE
+    // project: { type: oid, ref: "Project" }, // set when the tender goes LIVE
     others: othersField,
   },
   baseOptions
