@@ -1,8 +1,8 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 const { Schema } = mongoose;
 const oid = Schema.Types.ObjectId;
-const { baseOptions, othersField, paise, AttachmentSchema } = require("../shared/common");
-const { PAY_MODES, WEEK_STARTS_ON } = require("../shared/constants");
+import { baseOptions, othersField, paise, AttachmentSchema } from "../../../shared/common.js";
+import { PAY_MODES, WEEK_STARTS_ON } from "../../../shared/constants.js";
 
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July",
   "August", "September", "October", "November", "December"];
@@ -11,7 +11,6 @@ const PayrollRecordSchema = new Schema(
   {
     staff: { type: oid, ref: "Staff", required: true },
     payType: { type: String, enum: ["MONTHLY", "WEEKLY"], required: true },
-    // Give any date in the period as periodStart; start/end/label are normalised automatically.
     periodStart: { type: Date, required: true },
     periodEnd: { type: Date },
     periodLabel: { type: String },
@@ -20,7 +19,7 @@ const PayrollRecordSchema = new Schema(
     status: { type: String, enum: ["DUE", "PAID"], default: "DUE" },
     paidOn: Date,
     paymentMode: { type: String, enum: PAY_MODES },
-    referenceNo: String,                          // UTR / cheque no
+    referenceNo: String,                          
     markedPaidBy: { type: oid, ref: "User" },
     ledgerEntry: { type: oid, ref: "LedgerEntry" },
     createdBy: { type: oid, ref: "User", required: true },
@@ -29,13 +28,9 @@ const PayrollRecordSchema = new Schema(
   baseOptions
 );
 
-// one record per employee per period -> on-demand generation is idempotent
 PayrollRecordSchema.index({ staff: 1, payType: 1, periodStart: 1 }, { unique: true });
-// main screen: pick pay type + date, filter Due/Paid
 PayrollRecordSchema.index({ payType: 1, periodStart: 1, status: 1 });
 
-/* ---------- period resolution (dates are UTC-midnight calendar days) ---------- */
-// Pass "YYYY-MM-DD" strings from the frontend to avoid IST day shifts.
 PayrollRecordSchema.statics.getPeriod = function (date, payType, weekStartsOn = WEEK_STARTS_ON) {
   const d = typeof date === "string" ? new Date(`${date}T00:00:00.000Z`) : new Date(date);
   const day = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
@@ -58,7 +53,6 @@ PayrollRecordSchema.statics.getPeriod = function (date, payType, weekStartsOn = 
   };
 };
 
-// "Classic search": date + pay type -> that period's records
 PayrollRecordSchema.statics.findForDate = function (date, payType, status) {
   const { periodStart } = this.getPeriod(date, payType);
   const filter = { payType, periodStart };
@@ -66,7 +60,6 @@ PayrollRecordSchema.statics.findForDate = function (date, payType, status) {
   return this.find(filter).populate("staff", "empCode empName designation").sort({ createdAt: 1 });
 };
 
-// header totals: [{ _id: "DUE"|"PAID", count, total }]
 PayrollRecordSchema.statics.summarize = function (date, payType) {
   const { periodStart } = this.getPeriod(date, payType);
   return this.aggregate([
@@ -83,8 +76,8 @@ PayrollRecordSchema.pre("validate", function () {
     if (!this.paidOn) throw new Error("paidOn is required when status is PAID");
     if (!this.paymentMode) throw new Error("paymentMode is required when status is PAID");
   } else {
-    this.paidOn = this.paymentMode = this.referenceNo = this.markedPaidBy = undefined; // reverted to DUE
+    this.paidOn = this.paymentMode = this.referenceNo = this.markedPaidBy = undefined; 
   }
 });
 
-module.exports = mongoose.model("PayrollRecord", PayrollRecordSchema);
+export default mongoose.model("PayrollRecord", PayrollRecordSchema);

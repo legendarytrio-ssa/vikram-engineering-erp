@@ -1,11 +1,11 @@
-import { Router } from "express";
+// import { Router } from "express";
 
-import clientRoutes from "./clientRoutes.js";
-import tenderRoutes from "./tenderRoutes.js";
+// import clientRoutes from "./clientRoutes.js";
+// import tenderRoutes from "./tenderRoutes.js";
 
-const router = Router();
+// const router = Router();
 
-router.use("/clients", clientRoutes);
-router.use("/tenders", tenderRoutes);
+// router.use("/clients", clientRoutes);
+// router.use("/tenders", tenderRoutes);
 
-export default router;
+// export default router;

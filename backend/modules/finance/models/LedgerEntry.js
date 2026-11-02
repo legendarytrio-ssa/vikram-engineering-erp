@@ -1,8 +1,8 @@
 const mongoose = require("mongoose");
 const { Schema } = mongoose;
 const oid = Schema.Types.ObjectId;
-const { baseOptions, othersField, paise } = require("../shared/common");
-const { PAY_MODES } = require("../shared/constants");
+const { baseOptions, othersField, paise } = require("../../../shared/common.js");
+const { PAY_MODES } = require("../../../shared/constants");
 
 const LedgerEntrySchema = new Schema(
   {

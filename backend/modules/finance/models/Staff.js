@@ -1,7 +1,7 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 const { Schema } = mongoose;
-const { baseOptions, othersField, paise } = require("../shared/common");
-const { DEPARTMENTS } = require("../shared/constants");
+import { baseOptions, othersField, paise } from "../../../shared/common.js";
+import { DEPARTMENTS } from "../../../shared/constants.js";
 
 const StaffSchema = new Schema(
   {
@@ -9,8 +9,8 @@ const StaffSchema = new Schema(
     empName: { type: String, required: true, trim: true },
     designation: { type: String, trim: true },
     dept: { type: String, enum: DEPARTMENTS },
-    payType: { type: String, enum: ["SALARIED", "WAGED"], required: true }, // monthly / weekly
-    baseAmount: paise({ required: true }),        // monthly salary or weekly wage
+    payType: { type: String, enum: ["SALARIED", "WAGED"], required: true },
+    baseAmount: paise({ required: true }),
     joiningDate: { type: Date, required: true },
     leavingDate: Date,
     isActive: { type: Boolean, default: true },
@@ -19,7 +19,7 @@ const StaffSchema = new Schema(
   baseOptions
 );
 
-StaffSchema.index({ isActive: 1, payType: 1 });   // "who needs a payroll record this period"
+StaffSchema.index({ isActive: 1, payType: 1 });
 StaffSchema.index({ empName: "text", empCode: "text" });
 
-module.exports = mongoose.model("Staff", StaffSchema);
+export default mongoose.model("Staff", StaffSchema);

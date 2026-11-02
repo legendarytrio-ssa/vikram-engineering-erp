@@ -1,0 +1,48 @@
+import Staff  from "../models/Staff.js";
+import { wrapAsync } from "../../../shared/wrapAsync.js";
+
+export const createStaff = wrapAsync(async (req, res) => {
+  const staff = new Staff(req.body);
+  await staff.save();
+  res.status(201).json(staff);
+});
+
+export const getStaff = wrapAsync(async (req, res) => {
+  const { payType } = req.query;
+  const filter = { isActive: true };
+  if (payType) filter.payType = payType;
+  
+  const staff = await Staff.find(filter).sort({ createdAt: -1 });
+  res.status(200).json(staff);
+});
+
+
+export const searchInactiveStaff = wrapAsync(async (req, res) => {
+  const { query, payType } = req.query; 
+  
+  // Base filter: must be inactive, and must match the current page (SALARIED/WAGED)
+  const filter = { isActive: false };
+  if (payType) filter.payType = payType;
+  
+  // Use MongoDB text search if the user typed something
+  if (query) {
+    filter.$text = { $search: query };
+  }
+  
+  const inactiveStaff = await Staff.find(filter).sort({ empName: 1 });
+  res.status(200).json(inactiveStaff);
+});
+
+export const toggleStaffStatus = wrapAsync(async (req, res) => {
+  const { id } = req.params;
+  const { isActive } = req.body; // true (reactivate) or false (deactivate)
+  
+  const staff = await Staff.findById(id);
+  if (!staff) return res.status(404).json({ error: "Staff not found" });
+
+  staff.isActive = isActive;
+  staff.leavingDate = isActive ? null : new Date(); // clear if reactivating, set if deactivating
+  
+  await staff.save();
+  res.status(200).json(staff);
+});

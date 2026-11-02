@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
 const { Schema } = mongoose;
-const { baseOptions, othersField, AttachmentSchema } = require("../shared/common");
+const { baseOptions, othersField, AttachmentSchema } = require("../../../shared/common.js");
 
 const QualityControlSchema = new Schema(
   {

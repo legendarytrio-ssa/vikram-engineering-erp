@@ -1,7 +1,7 @@
 const mongoose = require("mongoose");
 const { Schema } = mongoose;
 const oid = Schema.Types.ObjectId;
-const { baseOptions, othersField, paise } = require("../shared/common");
+const { baseOptions, othersField, paise } = require("../../../shared/common.js");
 
 const LOCKED_AFTER_SEND = ["project", "rawMaterial", "qty", "unitPrice", "vendor"];
 

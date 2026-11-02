@@ -1,8 +1,8 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 const { Schema } = mongoose;
 const oid = Schema.Types.ObjectId;
-const { baseOptions, othersField, paise, AttachmentSchema } = require("../shared/common");
-const { PAY_MODES } = require("../shared/constants");
+import { baseOptions, othersField, paise, AttachmentSchema } from "../../../shared/common.js";
+import { PAY_MODES } from "../../../shared/constants.js";
 
 const ExpenseSchema = new Schema(
   {
@@ -11,7 +11,7 @@ const ExpenseSchema = new Schema(
     amount: paise({ required: true }),
     description: String,
     attachments: [AttachmentSchema],
-    project: { type: oid, ref: "Project" },       // optional
+    project: { type: oid, ref: "Project" },       
     paymentMode: { type: String, enum: PAY_MODES },
     createdBy: { type: oid, ref: "User", required: true },
     others: othersField,
@@ -19,8 +19,8 @@ const ExpenseSchema = new Schema(
   baseOptions
 );
 
-ExpenseSchema.index({ date: -1 });                // daily view
+ExpenseSchema.index({ date: -1 });                
 ExpenseSchema.index({ project: 1, date: -1 });
 ExpenseSchema.index({ category: 1, date: -1 });
 
-module.exports = mongoose.model("Expense", ExpenseSchema);
+export default mongoose.model("Expense", ExpenseSchema);

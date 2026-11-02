@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
 const { Schema } = mongoose;
-const { baseOptions, othersField } = require("../shared/common");
+const { baseOptions, othersField } = require("../../../shared/common");
 
 const ClientSchema = new Schema(
   {

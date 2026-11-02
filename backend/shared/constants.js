@@ -1,17 +1,12 @@
-const DEPARTMENTS = ["SALES_MARKETING", "OPERATIONS", "FINANCE"];
+export const DEPARTMENTS = ["SALES_MARKETING", "OPERATIONS", "FINANCE"];
 
-const SUB_DEPARTMENTS_BY_DEPT = {
+export const SUB_DEPARTMENTS_BY_DEPT = {
   SALES_MARKETING: ["TENDER_LIST", "CLIENT_LIST"],
   OPERATIONS: ["QUALITY_CONTROL", "PURCHASE"],
   FINANCE: ["PAYROLL", "OPERATIONS_FINANCE", "LEDGERS"],
 };
-const ALL_SUB_DEPARTMENTS = Object.values(SUB_DEPARTMENTS_BY_DEPT).flat();
+export const ALL_SUB_DEPARTMENTS = Object.values(SUB_DEPARTMENTS_BY_DEPT).flat();
 
-const ROLES = ["CEO", "EMPLOYEE"];
-const PAY_MODES = ["CASH", "BANK", "UPI", "CHEQUE"];
-const WEEK_STARTS_ON = 1; // 0 = Sunday, 1 = Monday ... confirm with the client
-
-module.exports = {
-  DEPARTMENTS, SUB_DEPARTMENTS_BY_DEPT, ALL_SUB_DEPARTMENTS,
-  ROLES, PAY_MODES, WEEK_STARTS_ON,
-};
+export const ROLES = ["CEO", "EMPLOYEE"];
+export const PAY_MODES = ["CASH", "BANK", "UPI", "CHEQUE"];
+export const WEEK_STARTS_ON = 1;
