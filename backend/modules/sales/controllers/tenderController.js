@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import Tender from "../models/Tender.js";
 import Client from "../models/Client.js";
+import { uploadFilesToTigris } from "../../../utils/tigrisHelper.js";
 
 export const getTenders = async (req, res) => {
   try {
@@ -73,12 +74,6 @@ export const createTenders = async (req, res) => {
       });
     }
 
-    // if (project && !mongoose.isValidObjectId(project)) {
-    //   return res.status(400).json({
-    //     error: "Invalid project ID.",
-    //   });
-    // }
-
     // 5. Check whether the client exists
     const existingClient = await Client.findById(client);
 
@@ -101,13 +96,13 @@ export const createTenders = async (req, res) => {
       });
     }
 
-    // 8. Prevent manually setting a project unless your workflow allows it
-    // if (project) {
-    //   return res.status(400).json({
-    //     error:
-    //       "A project cannot be assigned during tender creation.",
-    //   });
-    // }
+    const tenderFiles = req.files?.tenderDocs || [];
+    const applicationFiles = req.files?.applicationDocs || [];
+
+    const [tenderDocsMetadata, applicationDocsMetadata] = await Promise.all([
+      uploadFilesToTigris(tenderFiles, `tenders/${normalizedCode}/tenderDocs`, creatorId),
+      uploadFilesToTigris(applicationFiles, `tenders/${normalizedCode}/applicationDocs`, creatorId),
+    ]);
 
     // 9. Create the tender
     const tender = new Tender({
@@ -116,8 +111,8 @@ export const createTenders = async (req, res) => {
       category,
       description,
       client,
-      tenderDocs,
-      applicationDocs,
+      tenderDocs: tenderDocsMetadata,
+      applicationDocs: applicationDocsMetadata,
       status: "PENDING",
       others,
     });

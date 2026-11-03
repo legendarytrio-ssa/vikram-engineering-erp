@@ -1,4 +1,5 @@
 import Client from "../models/Client.js";
+import { uploadFilesToTigris } from "../../../utils/tigrisHelper.js";
 
 // GET /api/clients
 export const getAllClients = async (req, res) => {
@@ -32,18 +33,25 @@ export const createClient = async (req, res) => {
     return res.status(400).json({ error: "Name, type, and contactNo are required" });
   }
 
+  const clientFiles = req.files?.clientDocs || [];
+
+  const safeFolderName = name.replace(/[^a-zA-Z0-9]/g, "_").toLowerCase();
+  const uploadedDocs = await uploadFilesToTigris(clientFiles, `clients/${safeFolderName}`);
+
   try {
     const newClient = new Client({
       name,
       type,
       contactNo,
       organisationCEO,
+      clientDocs: uploadedDocs,
       others,
     });
 
     const savedClient = await newClient.save();
     res.status(201).json(savedClient);
   } catch (error) {
+    console.error("Create client error:", error);
     res.status(400).json({ error: error.message || "Failed to create client" });
   }
 };

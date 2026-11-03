@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 const { Schema } = mongoose;
 // const { baseOptions, othersField } = require("../../../shared/common");
-import { baseOptions, othersField } from "../../../shared/common.js"
+import { baseOptions, othersField, AttachmentSchema } from "../../../shared/common.js"
 
 const ClientSchema = new Schema(
   {
@@ -9,8 +9,7 @@ const ClientSchema = new Schema(
     type: { type: String, enum: ["GOVT", "PVT"], required: true, index: true },
     contactNo: { type: String, required: true, trim: true },
     organisationCEO: { type: String, trim: true },
-    isActive: { type: Boolean, default: true },
-    createdBy: { type: Schema.Types.ObjectId, ref: "User" },
+    clientDocs: [AttachmentSchema],
     others: othersField,
   },
   baseOptions
