@@ -1,6 +1,7 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 const { Schema } = mongoose;
-const { baseOptions, othersField } = require("../../../shared/common");
+// const { baseOptions, othersField } = require("../../../shared/common");
+import { baseOptions, othersField } from "../../../shared/common.js"
 
 const ClientSchema = new Schema(
   {
@@ -17,4 +18,4 @@ const ClientSchema = new Schema(
 
 ClientSchema.index({ name: "text", organisationCEO: "text" }); // "search existing client, else create"
 
-module.exports = mongoose.model("Client", ClientSchema);
+export default mongoose.model("Client", ClientSchema);

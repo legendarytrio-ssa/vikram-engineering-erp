@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { createStaff, getStaff } from "../controllers/staffController.js";
-import { createExpense, getExpenses, getExpenseSummary } from "../controllers/expenseController.js";
+import { createExpense, getExpenses } from "../controllers/expenseController.js";
+// import { createExpense, getExpenses, getExpenseSummary } from "../controllers/expenseController.js";
 import { 
   getOrGeneratePayroll, 
   togglePayrollStatus, 
@@ -19,7 +20,7 @@ router.put("/staff/:id/status", toggleStaffStatus);
 // Expenses
 router.post("/expenses", createExpense);
 router.get("/expenses", getExpenses);
-router.get("/expenses/summary", getExpenseSummary); 
+// router.get("/expenses/summary", getExpenseSummary); 
 
 // Payroll
 router.post("/payroll/generate", getOrGeneratePayroll);

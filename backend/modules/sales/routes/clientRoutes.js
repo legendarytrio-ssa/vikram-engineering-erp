@@ -1,12 +1,14 @@
-// import { Router } from "express";
-// import {
-//   getClients,
-//   createClients,
-// } from "../controllers/clientController.js";
+import { Router } from "express";
+import {
+  getAllClients,
+  createClient,
+  getClientById
+} from "../controllers/clientController.js";
 
-// const router = Router();
+const router = Router();
 
-// router.get("/getClients", getClients);
-// router.post("/createClients", createClients);
+router.get("/getAllClients", getAllClients);
+router.post("/createClient", createClient);
+router.post("/getClientById", getClientById);
 
-// export default router;
+export default router;

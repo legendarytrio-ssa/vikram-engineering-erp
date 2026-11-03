@@ -67,7 +67,7 @@ export function HomePage() {
   useEffect(() => {
     // Fetch data using exact endpoint matching
     axios.get(`${API_BASE}/tenders/getTenders`).then((res) => setTenders(res.data)).catch(console.error);
-    axios.get(`${API_BASE}/clients/getClients`).then((res) => setClients(res.data)).catch(console.error);
+    axios.get(`${API_BASE}/clients/getAllClients`).then((res) => setClients(res.data)).catch(console.error);
   }, []);
 
   return (

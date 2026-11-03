@@ -26,7 +26,7 @@ export default function HomePage() {
       .catch(console.error);
 
     salesApi
-      .get("/clients/getClients")
+      .get("/clients/getAllClients")
       .then((res) => setClients(res.data))
       .catch(console.error);
   }, []);

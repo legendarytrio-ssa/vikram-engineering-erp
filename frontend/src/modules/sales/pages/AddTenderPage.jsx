@@ -49,7 +49,7 @@ export default function AddTenderPage() {
 
   const fetchClients = async () => {
     try {
-      const res = await salesApi.get("/clients/getClients");
+      const res = await salesApi.get("/clients/getAllClients");
       // Handle both { data: [...] } and raw array responses
       const clientData = Array.isArray(res.data) ? res.data : res.data?.data || [];
       setClients(clientData);

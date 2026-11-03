@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 import Tender from "../models/Tender.js";
-import Client from "../models/clients.js";
+import Client from "../models/Client.js";
 
 export const getTenders = async (req, res) => {
   try {

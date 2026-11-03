@@ -1,7 +1,8 @@
 import mongoose from "mongoose"
 const { Schema } = mongoose;
 const oid = Schema.Types.ObjectId;
-const { baseOptions, othersField, AttachmentSchema } = require("../../../shared/common.js");
+import { baseOptions, othersField, AttachmentSchema } from "../../../shared/common.js";
+
 
 const TenderSchema = new Schema(
   {

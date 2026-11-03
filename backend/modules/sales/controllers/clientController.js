@@ -1,4 +1,4 @@
-import Client from "../models/clients.js";
+import Client from "../models/Client.js";
 
 // GET /api/clients
 export const getAllClients = async (req, res) => {

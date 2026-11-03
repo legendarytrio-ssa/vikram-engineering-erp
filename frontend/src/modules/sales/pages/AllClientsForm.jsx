@@ -515,7 +515,7 @@ export default function AllClientsForm() {
     setIsSubmitting(true);
 
     try {
-      const res = await salesApi.post("/clients/createClients", payload);
+      const res = await salesApi.post("/clients/createClient", payload);
       setSaved(true);
 
       // Return back to tender form with the newly created client state
