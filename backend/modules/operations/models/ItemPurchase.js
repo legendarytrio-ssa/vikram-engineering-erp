@@ -1,67 +1,33 @@
 const mongoose = require("mongoose");
 const { Schema } = mongoose;
 const oid = Schema.Types.ObjectId;
-const { baseOptions, othersField, paise } = require("../../../shared/common.js");
-
-const LOCKED_AFTER_SEND = ["project", "rawMaterial", "qty", "unitPrice", "vendor"];
+const { baseOptions, othersField, AttachmentSchema } = require("../../../shared/common");
 
 const ItemPurchaseSchema = new Schema(
   {
-    project: { type: oid, ref: "Project", required: true },
-    rawMaterial: { type: String, required: true, trim: true },
-    qty: { type: Number, required: true, min: 0 },
-    unitPrice: paise({ required: true }),
-    totalPrice: paise(),                          // computed: qty * unitPrice (budget)
-    actualBillAmount: paise(),                    // README's Actual_Bill_Amount
-    remarks: String,
-    vendor: { type: oid, ref: "VendorContractor", required: true },
-    vendorName: { type: String },                 // snapshot, auto-filled from vendor
-    financeStatus: {
+    project: { type: oid, ref: "Project", required: true, index: true },
+    
+    materialName: { type: String, required: true, trim: true },
+    vendorName: { type: String, required: true, trim: true },
+    quantity: { type: Number, required: true },
+    uom: { type: String, required: true },
+    unitRate: { type: Number, required: true },
+    totalCost: { type: Number, required: true },
+    
+    status: {
       type: String,
-      enum: ["DRAFT", "SENT_TO_FINANCE", "PAID"],
-      default: "DRAFT",
+      enum: ["PO_ISSUED", "DELIVERY_PENDING", "DELIVERED", "INVOICE_APPROVED"],
+      default: "PO_ISSUED",
       index: true,
     },
-    sentToFinanceAt: Date,
-    sentToFinanceBy: { type: oid, ref: "User" },
+
+    // Vendor quotes, official PO PDFs, vendor invoices
+    documents: [AttachmentSchema],
+    
     createdBy: { type: oid, ref: "User", required: true },
     others: othersField,
   },
-  baseOptions
+  { ...baseOptions }
 );
-
-ItemPurchaseSchema.index({ project: 1, createdAt: 1 });
-ItemPurchaseSchema.index({ vendor: 1 });
-ItemPurchaseSchema.index({ financeStatus: 1, sentToFinanceAt: -1 }); // Operations Finance queue
-
-// remember the status the document had when loaded
-ItemPurchaseSchema.post("init", function () {
-  this.$locals.originalFinanceStatus = this.financeStatus;
-});
-
-ItemPurchaseSchema.pre("validate", async function () {
-  this.totalPrice = Math.round(this.qty * this.unitPrice);
-
-  if (this.vendor && (this.isNew || this.isModified("vendor"))) {
-    const v = await mongoose.model("VendorContractor").findById(this.vendor).select("name").lean();
-    if (!v) throw new Error("Vendor/Contractor not found");
-    this.vendorName = v.name;
-  }
-
-  // Purchase can't change the money fields once Finance has them (use doc.save(), not update queries)
-  const original = this.$locals.originalFinanceStatus;
-  if (original && original !== "DRAFT") {
-    const touched = LOCKED_AFTER_SEND.filter((f) => this.isModified(f));
-    if (touched.length) throw new Error(`Cannot edit ${touched.join(", ")} after sending to finance`);
-  }
-});
-
-ItemPurchaseSchema.methods.sendToFinance = function (userId) {
-  if (this.financeStatus !== "DRAFT") throw new Error("Already sent to finance");
-  this.financeStatus = "SENT_TO_FINANCE";
-  this.sentToFinanceAt = new Date();
-  this.sentToFinanceBy = userId;
-  return this.save();
-};
 
 module.exports = mongoose.model("ItemPurchase", ItemPurchaseSchema);
