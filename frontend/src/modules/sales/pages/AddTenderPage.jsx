@@ -13,6 +13,7 @@ import {
   Settings2,
   Trash2,
   Users,
+  FileUp,
 } from "lucide-react";
 
 import Header from "../components/landing/Header";
@@ -37,6 +38,9 @@ export default function AddTenderPage() {
   const [category, setCategory] = useState("GOVT");
   const [description, setDescription] = useState("");
 
+  // File Upload State
+  const [tenderDocs, setTenderDocs] = useState([]);
+
   // Client Search & Selection
   const [clientQuery, setClientQuery] = useState("");
   const [selectedClientId, setSelectedClientId] = useState("");
@@ -50,7 +54,6 @@ export default function AddTenderPage() {
   const fetchClients = async () => {
     try {
       const res = await salesApi.get("/clients/getAllClients");
-      // Handle both { data: [...] } and raw array responses
       const clientData = Array.isArray(res.data) ? res.data : res.data?.data || [];
       setClients(clientData);
     } catch (err) {
@@ -83,7 +86,6 @@ export default function AddTenderPage() {
     setShowClientOptions(false);
     setError("");
 
-    // Auto-prefill category if client specifies GOVT / PVT
     if (client.type && ["GOVT", "PVT"].includes(client.type)) {
       setCategory(client.type);
     }
@@ -106,6 +108,26 @@ export default function AddTenderPage() {
     setExtraAttributes((curr) => curr.filter((attr) => attr.id !== id));
   }
 
+  // Handle file selection (Append instead of replace)
+
+  const handleFileChange = (e) => {
+    // First, copy the selected files before clearing the input
+    const selectedFiles = Array.from(e.target.files || []);
+
+    if (selectedFiles.length > 0) {
+      setTenderDocs((prev) => [...prev, ...selectedFiles]);
+    }
+
+    // Reset input so the same file can be selected again
+    e.target.value = "";
+  };
+
+
+  // Handle individual file removal
+  const removeFile = (indexToRemove) => {
+    setTenderDocs((prev) => prev.filter((_, index) => index !== indexToRemove));
+  };
+
   async function submitTender(event) {
     event.preventDefault();
     setError("");
@@ -114,14 +136,12 @@ export default function AddTenderPage() {
       setError("Tender Code is required.");
       return;
     }
-
     if (!title.trim()) {
       setError("Tender Title is required.");
       return;
     }
-
     if (!selectedClientId) {
-      setError("Please search and select a client from the database. If not in the list then create a new Client in the create Client section");
+      setError("Please search and select a client from the database.");
       return;
     }
 
@@ -132,27 +152,35 @@ export default function AddTenderPage() {
       return acc;
     }, {});
 
-    const payload = {
-      code: code.trim().toUpperCase(),
-      title: title.trim(),
-      category,
-      description: description.trim(),
-      client: selectedClientId,
-      status: "PENDING",
-      others: Object.keys(othersObject).length > 0 ? othersObject : undefined,
-    };
+    // Use FormData for multipart/form-data file uploads
+    const formData = new FormData();
+    formData.append("code", code.trim().toUpperCase());
+    formData.append("title", title.trim());
+    formData.append("category", category);
+    formData.append("description", description.trim());
+    formData.append("client", selectedClientId);
+    formData.append("status", "PENDING");
+
+    if (Object.keys(othersObject).length > 0) {
+      formData.append("others", JSON.stringify(othersObject));
+    }
+
+    // Append all accumulated files to the formData
+    tenderDocs.forEach((file) => {
+      formData.append("tenderDocs", file);
+    });
 
     setIsSubmitting(true);
 
     try {
-      await salesApi.post("/tenders/createTenders", payload);
+      await salesApi.post("/tenders/createTenders", formData);
       setSaved(true);
       setTimeout(() => navigate("/sales"), 800);
     } catch (err) {
       setError(
         err.response?.data?.error ||
-          err.response?.data?.message ||
-          "Failed to save tender to server."
+        err.response?.data?.message ||
+        "Failed to save tender to server."
       );
       setIsSubmitting(false);
     }
@@ -372,7 +400,7 @@ export default function AddTenderPage() {
             </div>
           </section>
 
-          {/* 3. ADDITIONAL ATTRIBUTES (Mapped to Schema 'others') */}
+          {/* 3. ADDITIONAL ATTRIBUTES */}
           <section className="rounded-2xl border border-zinc-800 bg-zinc-900 p-5 shadow-lg shadow-black/20 sm:p-7">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-start gap-3">
@@ -449,6 +477,81 @@ export default function AddTenderPage() {
                 No custom metadata added.
               </p>
             )}
+          </section>
+
+          {/* 4. DOCUMENTS (FILE UPLOAD) */}
+          <section className="rounded-2xl border border-zinc-800 bg-zinc-900 p-5 shadow-lg shadow-black/20 sm:p-7">
+            <div className="mb-6 flex items-start gap-3 border-b border-zinc-800 pb-5">
+              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-zinc-800 text-zinc-300">
+                <FileUp size={18} />
+              </span>
+              <div>
+                <h2 className="font-semibold text-zinc-100">Documents</h2>
+                <p className="mt-1 text-sm text-zinc-400">
+                  Upload tender specifications, BOQs, or reference files.
+                </p>
+              </div>
+            </div>
+
+            <div>
+              <FieldLabel>Tender Attachments</FieldLabel>
+
+              {/* Flex container groups the button and the files side-by-side */}
+              <div className="mt-3 flex flex-wrap items-center gap-3">
+
+                {/* 1. Custom Upload Button */}
+                <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-emerald-500/30 bg-emerald-500/10 px-5 py-3 text-sm font-semibold text-emerald-500 transition hover:bg-emerald-500/20 hover:border-emerald-500/50">
+                  <CirclePlus size={16} />
+                  {tenderDocs.length > 0 ? "Add More" : "Browse Files"}
+
+                  {/* Hidden native input */}
+                  <input
+                    type="file"
+                    multiple
+                    accept=".pdf,.doc,.docx,.jpg,.png"
+                    onChange={handleFileChange}
+                    className="sr-only"
+                  />
+                </label>
+
+                {tenderDocs.length > 0 && (
+                  <span className="text-xs text-emerald-400">
+                    {tenderDocs.length} file(s) selected
+                  </span>
+                )}
+
+                {/* 2. Uploaded File Chips rendered BESIDE the button */}
+                {tenderDocs.map((file, index) => (
+                  <div
+                    key={`${file.name}-${index}`}
+                    className="flex items-center gap-2.5 rounded-xl border border-zinc-700 bg-zinc-950/50 px-3 py-2 shadow-sm transition-all"
+                  >
+                    <FileUp size={15} className="text-zinc-500 shrink-0" />
+
+                    <div className="flex flex-col justify-center">
+                      <span className="max-w-[160px] truncate text-xs font-medium text-zinc-200">
+                        {file.name}
+                      </span>
+                      <span className="text-[10px] text-zinc-500">
+                        {(file.size / 1024 / 1024).toFixed(2)} MB
+                      </span>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => removeFile(index)}
+                      className="ml-1 shrink-0 rounded-md p-1 text-zinc-500 hover:bg-rose-500/10 hover:text-rose-500 transition-colors"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+
+              <p className="mt-4 text-xs leading-relaxed text-zinc-500">
+                You can select multiple files from different directories. Max 10MB per file. Allowed formats: PDF, DOC, DOCX, JPG, PNG.
+              </p>
+            </div>
           </section>
 
           {/* ERRORS & FEEDBACK */}

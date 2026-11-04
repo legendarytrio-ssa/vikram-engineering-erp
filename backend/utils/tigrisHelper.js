@@ -1,4 +1,4 @@
-import { PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
+import { PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import tigris from "../config/tigris.js";
 
@@ -45,4 +45,18 @@ export const getDownloadUrl = async (fileKey, originalName) => {
   });
 
   return getSignedUrl(tigris, command, { expiresIn: 300 });
+};
+
+export const deleteFileFromTigris = async (fileKey) => {
+  try {
+    const command = new DeleteObjectCommand({
+      Bucket: process.env.BUCKET_NAME,
+      Key: fileKey,
+    });
+    await tigris.send(command);
+    return true;
+  } catch (error) {
+    console.error("Tigris deletion error:", error);
+    throw error;
+  }
 };
