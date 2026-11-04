@@ -20,11 +20,9 @@ export const paise = (extra = {}) => ({
 export const AttachmentSchema = new Schema(
   {
     key: { type: String, required: true },
-    url: String,
     originalName: { type: String, required: true },
     mimeType: String,
     size: Number,
-    uploadedBy: { type: oid, ref: "User" },
     uploadedAt: { type: Date, default: Date.now },
   },
   { _id: true }
