@@ -1,4 +1,4 @@
-import { wrapAsync } from "../../../shared/wrapAsync";
+import { wrapAsync } from "../../../shared/wrapAsync.js";
 import * as operationService from "../services/operationService.js"
 
 // @desc    Get all active projects for Operations Dashboards

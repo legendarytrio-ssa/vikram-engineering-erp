@@ -1,7 +1,9 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
+// Note: ES modules in Node require the .js extension at the end of local imports
+import { baseOptions, othersField, AttachmentSchema } from "../../../shared/common.js";
+
 const { Schema } = mongoose;
 const oid = Schema.Types.ObjectId;
-const { baseOptions, othersField, AttachmentSchema } = require("../../../shared/common");
 
 const ItemPurchaseSchema = new Schema(
   {
@@ -30,4 +32,5 @@ const ItemPurchaseSchema = new Schema(
   { ...baseOptions }
 );
 
-module.exports = mongoose.model("ItemPurchase", ItemPurchaseSchema);
+// Converted to ES6 default export
+export default mongoose.model("ItemPurchase", ItemPurchaseSchema);

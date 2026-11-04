@@ -8,6 +8,10 @@ import { connectDB } from "./config/mongoDB.js";
 // Department routes
 import salesRoutes from "./modules/sales/routes/index.js";
 import financeRoutes from "./modules/finance/routes/financeRoutes.js";
+// Adjust the path to match where you placed the operations folder 
+// (e.g., "./modules/operations/routes/operationsRoutes.js" if you put it inside modules)
+import operationsRoutes from "./modules/operations/routes/operationsRoutes.js"; 
+
 dns.setServers(["1.1.1.1", "0.0.0.0"]);
 
 const app = express();
@@ -24,6 +28,10 @@ connectDB();
 // =======================
 app.use("/api/sales", salesRoutes);
 
+// =======================
+// OPERATIONS DEPARTMENT ROUTES
+// =======================
+app.use("/api/operations", operationsRoutes);
 
 /// ======================
 /// FINANCE DEPARTMENT ROUTES
@@ -43,22 +51,6 @@ app.get("/health", (req, res) => {
     message: "Server is healthy",
   });
 });
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 // Global Error Handling Middleware
 app.use((err, req, res, next) => {
