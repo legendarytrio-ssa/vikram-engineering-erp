@@ -14,7 +14,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 
-import operationsApi from "../api/operations_api";
+import operationsApi from "../api/operations_Api.js";
 
 function Detail({ label, value }) {
   if (value === undefined || value === null || value === "") return null;
