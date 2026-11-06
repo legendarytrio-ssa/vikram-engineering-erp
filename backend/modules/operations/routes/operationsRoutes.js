@@ -1,44 +1,50 @@
+
 import express from "express";
 import multer from "multer";
 
-// Importing the exact function names from your updated controller
-import { 
-  getOperationsProjects, 
-  getProjectVault, 
+import {
+  getOperationsProjects,
+  getProjectVault,
   submitPurchaseOrder,
   uploadQCDocument,
-  uploadPurchaseDocument
-} from "../controllers/operationsController.js"; 
+  uploadPurchaseDocument,
+  getPurchaseOrderDocument,
+} from "../controllers/operationsController.js";
 
 const router = express.Router();
 
-// Memory storage for Tigris uploads
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 20 * 1024 * 1024 }, // 20MB limit
+  limits: { fileSize: 20 * 1024 * 1024 },
 });
 
-// GET /api/operations/projects
+// @route   GET /api/operations/projects
 router.get("/projects", getOperationsProjects);
 
-// GET /api/operations/projects/:id
+// @route   GET /api/operations/projects/:id
 router.get("/projects/:id", getProjectVault);
 
-// POST /api/operations/projects/:id/purchase-orders
+// @route   POST /api/operations/projects/:id/purchase-orders
 router.post(
   "/projects/:id/purchase-orders",
-  upload.array("documents"), 
+  upload.array("documents"),
   submitPurchaseOrder
 );
 
-// POST /api/operations/projects/:id/documents/qc (Future logic)
+// @route   GET /api/operations/projects/:id/purchase-orders/:poId/documents/:documentId
+router.get(
+  "/projects/:id/purchase-orders/:poId/documents/:documentId",
+  getPurchaseOrderDocument
+);
+
+// @route   POST /api/operations/projects/:id/documents/qc
 router.post(
   "/projects/:id/documents/qc",
   upload.array("documents"),
   uploadQCDocument
 );
 
-// POST /api/operations/projects/:id/documents/purchase (Future logic)
+// @route   POST /api/operations/projects/:id/documents/purchase
 router.post(
   "/projects/:id/documents/purchase",
   upload.array("documents"),

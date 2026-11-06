@@ -1,5 +1,5 @@
 import Project from "../../../models/Project.js";
-import { uploadFilesToTigris } from "../../../utils/tigrisHelper.js";
+import { getDownloadUrl, getViewUrl, uploadFilesToTigris } from "../../../utils/tigrisHelper.js";
 import QualityControl from "../models/QualityControl.js";
 import ItemPurchase from "../models/ItemPurchase.js";
 
@@ -59,6 +59,39 @@ export const createPurchaseOrder = async(projectId, formData, files, userId)=>{
   await newPO.save();
   return newPO;
 }
+
+
+// Generate a View or Download URL for a purchase order document
+export const fetchPurchaseOrderDocumentUrl = async (
+  projectId,
+  purchaseOrderId,
+  documentId,
+  disposition = "attachment"
+) => {
+  // Find the PO belonging to this project
+  const purchaseOrder = await ItemPurchase.findOne({
+    _id: purchaseOrderId,
+    project: projectId,
+  }).select("documents");
+
+  if (!purchaseOrder) {
+    return null;
+  }
+
+  // Find the requested document inside the PO
+  const document = purchaseOrder.documents.id(documentId);
+
+  if (!document) {
+    return null;
+  }
+
+  // Generate the appropriate signed URL
+  if (disposition === "inline") {
+    return getViewUrl(document.key, document.originalName);
+  }
+
+  return getDownloadUrl(document.key, document.originalName);
+};
 
 /**
  * (Pending) Adds independent documents to the QC Vault array

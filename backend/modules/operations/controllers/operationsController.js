@@ -73,3 +73,30 @@ export const uploadPurchaseDocument = wrapAsync(async (req, res, next) => {
     message: "Purchase Document upload endpoint reached. Upload logic pending."
   });
 });
+
+export const getPurchaseOrderDocument = wrapAsync(async(req,res,next)=>{
+    
+  const {
+    id:projectId,
+    poId,
+    documentId
+  }= req.params;
+
+  const disposition = req.query.disposition === "inline" ? "inline" : "attachment";
+
+  const url = await operationService.fetchPurchaseOrderDocumentUrl(
+    projectId,
+    poId,
+    documentId,
+    disposition
+  )
+
+    if (!url) {
+    return res.status(404).json({
+      success: false,
+      message: "Purchase order or document not found.",
+    });
+  }
+
+  res.redirect(302, url);
+});
