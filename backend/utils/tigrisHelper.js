@@ -60,3 +60,13 @@ export const deleteFileFromTigris = async (fileKey) => {
     throw error;
   }
 };
+
+export const getViewUrl = async (fileKey, originalName) => {
+  const command = new GetObjectCommand({
+    Bucket: process.env.BUCKET_NAME,
+    Key: fileKey,
+    ResponseContentDisposition: `inline; filename="${originalName}"`,
+  });
+
+  return getSignedUrl(tigris, command, { expiresIn: 300 });
+};
