@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 
 import ProjectDetailsModal from "../../components/ProjectDetailsModal";
-import operationsApi from "../../api/operations_api";
+import operationsApi from "../../api/operations_Api.js";
 
 export default function PurchaseHub() {
   const [projects, setProjects] = useState([]);

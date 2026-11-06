@@ -12,7 +12,7 @@ import {
   IndianRupee,
   FileText,
 } from "lucide-react";
-import operationsApi from "../../api/operations_api";
+import operationsApi from "../../api/operations_Api.js";
 
 export default function ProjectPurchaseDashboard() {
   const { projectId } = useParams();
