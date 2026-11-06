@@ -1,15 +1,24 @@
-import { Routes, Route } from "react-router-dom";
-import PurchaseLayout from "../../layouts/PurchaseLayout.jsx";
-import PurchaseDashboard from "./PurchaseDashboard.jsx";
-import PurchaseProjectVault from "./PurchaseProjectVault.jsx";
+
+import { Routes, Route, Navigate } from "react-router-dom";
+
+import PurchaseHub from "./PurchaseHub";
+import ProjectPurchaseDashboard from "./ProjectPurchaseDashboard";
+
+// Keep your existing imports and routes as well.
 
 export default function PurchaseRoutes() {
   return (
-    <PurchaseLayout>
-      <Routes>
-        <Route path="/" element={<PurchaseDashboard />} />
-        <Route path="/projects/:id" element={<PurchaseProjectVault />} />
-      </Routes>
-    </PurchaseLayout>
+    <Routes>
+      <Route index element={<PurchaseHub />} />
+
+      <Route
+        path="projects/:projectId/purchase-orders/new"
+        element={<ProjectPurchaseDashboard />}
+      />
+
+      {/* Keep your other existing routes here */}
+
+      <Route path="*" element={<Navigate to="/operations/purchase" replace />} />
+    </Routes>
   );
 }

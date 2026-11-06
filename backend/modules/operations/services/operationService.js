@@ -1,5 +1,6 @@
 import Project from "../../../models/Project.js";
 import { uploadFilesToTigris } from "../../../utils/tigrisHelper.js";
+import QualityControl from "../models/QualityControl.js";
 import ItemPurchase from "../models/ItemPurchase.js";
 
 /**
@@ -38,7 +39,7 @@ export const createPurchaseOrder = async(projectId, formData, files, userId)=>{
   // 1. Calculate the total cost securely on the backend
   const totalCost = Number(quantity) * Number(unitRate);
   // 2. Upload files to Tigris (if any exist in the req.files array)
-  const folderPath = `operations/${projectId}/purchase-orders`;
+  const folderPath = `projects/${projectId}/purchaseOrders`;
   const uploadedDocuments = await uploadFilesToTigris(files, folderPath);
 
   // 3. Create the new ItemPurchase document

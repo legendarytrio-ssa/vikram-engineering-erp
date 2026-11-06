@@ -1,13 +1,30 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
+import {
+  baseOptions,
+  othersField,
+  AttachmentSchema,
+} from "../../../shared/common.js";
+
 const { Schema } = mongoose;
-const { baseOptions, othersField, AttachmentSchema } = require("../../../shared/common.js");
 
 const QualityControlSchema = new Schema(
   {
-    project: { type: Schema.Types.ObjectId, ref: "Project", required: true },
-    description: { type: String, required: true, trim: true },
+    project: {
+      type: Schema.Types.ObjectId,
+      ref: "Project",
+      required: true,
+    },
+    description: {
+      type: String,
+      required: true,
+      trim: true,
+    },
     docs: [AttachmentSchema],
-    createdBy: { type: Schema.Types.ObjectId, ref: "User", required: true },
+    createdBy: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
     others: othersField,
   },
   baseOptions
@@ -15,4 +32,9 @@ const QualityControlSchema = new Schema(
 
 QualityControlSchema.index({ project: 1, createdAt: -1 });
 
-module.exports = mongoose.model("QualityControl", QualityControlSchema);
+const QualityControl = mongoose.model(
+  "QualityControl",
+  QualityControlSchema
+);
+
+export default QualityControl;

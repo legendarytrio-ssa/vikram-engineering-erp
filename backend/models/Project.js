@@ -1,7 +1,9 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
+// Note: Added the .js extension required for ES module local imports
+import { baseOptions, othersField, AttachmentSchema } from "../shared/common.js";
+
 const { Schema } = mongoose;
 const oid = Schema.Types.ObjectId;
-const { baseOptions, othersField, AttachmentSchema } = require("../shared/common");
 
 const ProjectSchema = new Schema(
   {
@@ -68,4 +70,5 @@ const ProjectSchema = new Schema(
 ProjectSchema.virtual("qualityRecords", { ref: "QualityControl", localField: "_id", foreignField: "project" });
 ProjectSchema.virtual("purchaseItems", { ref: "ItemPurchase", localField: "_id", foreignField: "project" });
 
-module.exports = mongoose.model("Project", ProjectSchema);
+// Converted to ES6 default export
+export default mongoose.model("Project", ProjectSchema);
