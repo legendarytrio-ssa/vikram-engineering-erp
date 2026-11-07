@@ -1,15 +1,12 @@
-import { Routes, Route } from "react-router-dom";
-import QCLayout from "../../layouts/QCLayout";
+import { Routes, Route, Navigate } from "react-router-dom";
 import QCDashboard from "./QCDashboard";
-import QCProjectVault from "./QCProjectVault";
 
 export default function QCRoutes() {
   return (
-    <QCLayout>
-      <Routes>
-        <Route path="/" element={<QCDashboard />} />
-        <Route path="/projects/:id" element={<QCProjectVault />} />
-      </Routes>
-    </QCLayout>
+    <Routes>
+      <Route index element={<QCDashboard />} />
+
+      <Route path="*" element={<Navigate to="/operations/qc" replace />} />
+    </Routes>
   );
 }

@@ -9,6 +9,7 @@ import {
   uploadQCDocument,
   uploadPurchaseDocument,
   getPurchaseOrderDocument,
+  submitQCReport
 } from "../controllers/operationsController.js";
 
 const router = express.Router();
@@ -49,6 +50,12 @@ router.post(
   "/projects/:id/documents/purchase",
   upload.array("documents"),
   uploadPurchaseDocument
+);
+
+router.post(
+  "/projects/:id/qc-reports",
+  upload.array("documents"),
+  submitQCReport
 );
 
 export default router;
