@@ -10,7 +10,7 @@ import {
   uploadPurchaseDocument,
   getPurchaseOrderDocument,
 } from "../controllers/operationsController.js";
-
+// import { sendPurchaseOrderToFinance } from "../controllers/operationsController.js";
 const router = express.Router();
 
 const upload = multer({
@@ -36,6 +36,12 @@ router.get(
   "/projects/:id/purchase-orders/:poId/documents/:documentId",
   getPurchaseOrderDocument
 );
+
+// // @route PUT api/operations/projects/:id/purchase-orders/:poId/send-to-finance
+// router.put(
+//   "/projects/:id/purchase-orders/:poId/send-to-finance",
+//   sendPurchaseOrderToFinance
+// );
 
 // @route   POST /api/operations/projects/:id/documents/qc
 router.post(

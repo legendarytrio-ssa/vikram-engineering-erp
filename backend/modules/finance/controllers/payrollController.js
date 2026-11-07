@@ -5,6 +5,7 @@ import { wrapAsync } from "../../../shared/wrapAsync.js";
 export const getOrGeneratePayroll = wrapAsync(async (req, res) => {
   const { date, payType, userId } = req.body;
   
+  // Use your existing static method to get period bounds
   const period = PayrollRecord.getPeriod(date, payType);
   
   const existingRecords = await PayrollRecord.find({ 
@@ -14,7 +15,24 @@ export const getOrGeneratePayroll = wrapAsync(async (req, res) => {
   const existingStaffIds = existingRecords.map(r => r.staff.toString());
 
   const staffType = payType === "MONTHLY" ? "SALARIED" : "WAGED";
-  const activeStaff = await Staff.find({ isActive: true, payType: staffType });
+  
+  // Calculate the absolute end of the current payroll period for filtering
+  const pStart = new Date(period.periodStart);
+  let periodEnd;
+  if (payType === "MONTHLY") {
+    periodEnd = new Date(Date.UTC(pStart.getUTCFullYear(), pStart.getUTCMonth() + 1, 0, 23, 59, 59, 999));
+  } else {
+    periodEnd = new Date(pStart);
+    periodEnd.setUTCDate(pStart.getUTCDate() + 6);
+    periodEnd.setUTCHours(23, 59, 59, 999);
+  }
+
+  // THE FIX: Only fetch staff who joined ON OR BEFORE the end of this specific period
+  const activeStaff = await Staff.find({ 
+    isActive: true, 
+    payType: staffType,
+    joiningDate: { $lte: periodEnd } 
+  });
   
   const missingStaff = activeStaff.filter(s => !existingStaffIds.includes(s._id.toString()));
 
@@ -33,7 +51,7 @@ export const getOrGeneratePayroll = wrapAsync(async (req, res) => {
   const finalRecords = await PayrollRecord.find({ 
     payType, 
     periodStart: period.periodStart 
-  }).populate("staff", "empCode empName designation isActive"); // Note: added isActive here
+  }).populate("staff", "empCode empName designation isActive");
   
   // Sort array: DUE records first, then by Employee Name alphabetically
   finalRecords.sort((a, b) => {
@@ -44,7 +62,6 @@ export const getOrGeneratePayroll = wrapAsync(async (req, res) => {
   
   res.status(200).json({ periodLabel: period.periodLabel, records: finalRecords });
 });
-
 
 
 

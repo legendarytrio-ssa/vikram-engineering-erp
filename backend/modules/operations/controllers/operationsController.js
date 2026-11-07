@@ -100,3 +100,17 @@ export const getPurchaseOrderDocument = wrapAsync(async(req,res,next)=>{
 
   res.redirect(302, url);
 });
+
+
+
+
+// export const sendPurchaseOrderToFinance = wrapAsync(async (req, res) => {
+//   const { id: projectId, poId } = req.params;
+//   const updatedPO = await operationService.forwardPOToFinance(projectId, poId);
+
+//   if (!updatedPO) {
+//     return res.status(404).json({ success: false, message: "PO not found." });
+//   }
+
+//   res.status(200).json({ success: true, data: updatedPO });
+// });
