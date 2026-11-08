@@ -21,7 +21,7 @@ import {
 
 
 import { fetchProjectDetails } from "../services/operationServices.js";
-import operationsApi from "../api/operations_api.js";
+import operationsApi from "../api/operations_Api.js";
 
 function Detail({ label, value }) {
   if (value === undefined || value === null || value === "") return null;

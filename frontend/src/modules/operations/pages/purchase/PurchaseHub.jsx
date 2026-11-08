@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 
 import ProjectDetailsModal from "../../components/ProjectDetailsModal.jsx";
-import { fetchActiveProjects } from "../../services/operationServices.jsx";
+import { fetchActiveProjects } from "../../services/operationServices";
 
 function StatCard({ title, value, description, icon: Icon }) {
   return (
