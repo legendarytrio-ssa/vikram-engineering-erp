@@ -18,7 +18,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 
-import operationsApi from "../api/operations_api";
+import operationsApi from "../api/operations_api.js";
 import AddQCReportModal from "./AddQCReportModal";
 
 // --------------------------------------------------
