@@ -13,8 +13,8 @@ import {
   ArrowRight,
 } from "lucide-react";
 
-import ProjectDetailsModal from "../../components/ProjectDetailsModal";
-import { fetchActiveProjects } from "../../services/operationServices";
+import ProjectDetailsModal from "../../components/ProjectDetailsModal.jsx";
+import { fetchActiveProjects } from "../../services/operationServices.jsx";
 
 function StatCard({ title, value, description, icon: Icon }) {
   return (
