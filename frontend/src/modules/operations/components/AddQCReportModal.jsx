@@ -11,8 +11,7 @@ import {
   ClipboardCheck,
   ArrowLeft,
 } from "lucide-react";
-
-import operationsApi from "../api/operations_api";
+import operationsApi from "../api/operations_Api";
 
 const inputClass =
   "w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-zinc-100 placeholder:text-zinc-600 outline-none focus:border-emerald-500 transition";
