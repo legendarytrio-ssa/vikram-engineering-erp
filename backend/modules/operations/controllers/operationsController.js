@@ -1,5 +1,7 @@
 import { wrapAsync } from "../../../shared/wrapAsync.js";
-import * as operationService from "../services/operationService.js"
+import * as operationService from "../services/operationService.js";
+import mongoose from "mongoose";
+
 
 // @desc    Get all active projects for Operations Dashboards
 // @route   GET /api/operations/projects
@@ -74,6 +76,7 @@ export const uploadPurchaseDocument = wrapAsync(async (req, res, next) => {
   });
 });
 
+
 export const getPurchaseOrderDocument = wrapAsync(async(req,res,next)=>{
     
   const {
@@ -102,15 +105,132 @@ export const getPurchaseOrderDocument = wrapAsync(async(req,res,next)=>{
 });
 
 
+export const submitQCReport = async (req, res) => {
+  try {
+    const { id: projectId } = req.params;
 
+    const {
+      vendorName,
+      title,
+      description,
+      customFields,
+    } = req.body;
 
-// export const sendPurchaseOrderToFinance = wrapAsync(async (req, res) => {
-//   const { id: projectId, poId } = req.params;
-//   const updatedPO = await operationService.forwardPOToFinance(projectId, poId);
+    // Validate required fields.
+    if (!title?.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: "Report title is required.",
+      });
+    }
 
-//   if (!updatedPO) {
-//     return res.status(404).json({ success: false, message: "PO not found." });
-//   }
+    if (!description?.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: "Report description is required.",
+      });
+    }
 
-//   res.status(200).json({ success: true, data: updatedPO });
-// });
+    if (!mongoose.Types.ObjectId.isValid(projectId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid project ID.",
+      });
+    }
+
+    // Parse customFields because FormData sends it as a string.
+    let parsedCustomFields = [];
+
+    try {
+      parsedCustomFields = customFields
+        ? JSON.parse(customFields)
+        : [];
+    } catch {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid custom parameters format.",
+      });
+    }
+
+    if (!Array.isArray(parsedCustomFields)) {
+      return res.status(400).json({
+        success: false,
+        message: "Custom parameters must be an array.",
+      });
+    }
+
+    // Validate custom parameter entries.
+    const invalidField = parsedCustomFields.some(
+      (field) =>
+        !field.name?.trim() || !field.value?.trim()
+    );
+
+    if (invalidField) {
+      return res.status(400).json({
+        success: false,
+        message: "Every custom parameter must have a name and value.",
+      });
+    }
+
+    // Get authenticated user.
+    // const createdBy = req.user?._id || req.user?.id;
+
+    // if (!createdBy) {
+    //   return res.status(401).json({
+    //     success: false,
+    //     message: "Authenticated user information not found.",
+    //   });
+    // }
+
+    const qcReport = await operationService.createQCReport({
+      projectId,
+      vendorName,
+      title,
+      description,
+      customFields: parsedCustomFields,
+      files: req.files || [],
+      
+    });
+
+    return res.status(201).json({
+      success: true,
+      message: "QC report created successfully.",
+      data: qcReport,
+    });
+  } catch (error) {
+    console.error("Submit QC Report Error:", error);
+
+    return res.status(
+      error.message === "Project not found." ? 404 : 500
+    ).json({
+      success: false,
+      message: error.message || "Unable to create QC report.",
+    });
+  }
+};
+
+export const getQCReportDocument = wrapAsync( async (req, res, next) => {
+  try {
+    const { id: projectId, reportId, documentId } = req.params;
+    const disposition =
+      req.query.disposition === "inline" ? "inline" : "attachment";
+
+    const url = await operationService.fetchQCReportDocumentUrl(
+      projectId,
+      reportId,
+      documentId,
+      disposition
+    );
+
+    if (!url) {
+      return res.status(404).json({
+        success: false,
+        message: "QC report or document not found.",
+      });
+    }
+
+    return res.redirect(url);
+  } catch (error) {
+    next(error);
+  }
+});

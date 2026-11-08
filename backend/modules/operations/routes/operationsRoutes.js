@@ -9,6 +9,8 @@ import {
   uploadQCDocument,
   uploadPurchaseDocument,
   getPurchaseOrderDocument,
+  submitQCReport,
+  getQCReportDocument
 } from "../controllers/operationsController.js";
 // import { sendPurchaseOrderToFinance } from "../controllers/operationsController.js";
 const router = express.Router();
@@ -31,17 +33,26 @@ router.post(
   submitPurchaseOrder
 );
 
+// @route   POST /api/operations/projects/:id/qc-reports
+router.post(
+  "/projects/:id/qc-reports",
+  upload.array("documents"),
+  submitQCReport
+);
+
 // @route   GET /api/operations/projects/:id/purchase-orders/:poId/documents/:documentId
 router.get(
   "/projects/:id/purchase-orders/:poId/documents/:documentId",
   getPurchaseOrderDocument
 );
 
-// // @route PUT api/operations/projects/:id/purchase-orders/:poId/send-to-finance
-// router.put(
-//   "/projects/:id/purchase-orders/:poId/send-to-finance",
-//   sendPurchaseOrderToFinance
-// );
+// @route   GET /api/operations/projects/:id/qc-reports/:reportId/documents/:documentId
+router.get(
+  "/projects/:id/qc-reports/:reportId/documents/:documentId",
+  getQCReportDocument
+);
+
+
 
 // @route   POST /api/operations/projects/:id/documents/qc
 router.post(
@@ -56,5 +67,15 @@ router.post(
   upload.array("documents"),
   uploadPurchaseDocument
 );
+
+
+
+
+// // @route PUT api/operations/projects/:id/purchase-orders/:poId/send-to-finance
+// router.put(
+//   "/projects/:id/purchase-orders/:poId/send-to-finance",
+//   sendPurchaseOrderToFinance
+// );
+
 
 export default router;

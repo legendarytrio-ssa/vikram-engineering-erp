@@ -1,22 +1,96 @@
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Building2,
-  FolderOpen,
-  ArrowRight,
-  Loader2,
+  FolderKanban,
+  Search,
   RefreshCw,
+  Loader2,
   AlertCircle,
+  ArrowLeft,
+  FileText,
+  ArrowRight,
 } from "lucide-react";
 
-import ProjectDetailsModal from "../../components/ProjectDetailsModal";
-import operationsApi from "../../api/operations_Api.js";
+import ProjectDetailsModal from "../../components/ProjectDetailsModal.jsx";
+import { fetchActiveProjects } from "../../services/operationServices";
+
+function StatCard({ title, value, description, icon: Icon }) {
+  return (
+    <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-5">
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-zinc-400">{title}</p>
+
+        <div className="rounded-lg bg-emerald-500/10 p-2">
+          <Icon size={19} className="text-emerald-400" />
+        </div>
+      </div>
+
+      <h3 className="mt-4 text-3xl font-semibold text-white">
+        {value}
+      </h3>
+
+      <p className="mt-1 text-xs text-zinc-500">{description}</p>
+    </div>
+  );
+}
+
+function ProjectCard({ project, onOpen }) {
+  return (
+    <div className="group rounded-xl border border-zinc-800 bg-zinc-900 p-5 transition hover:border-emerald-500/40 hover:bg-zinc-900/80">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-xs font-medium tracking-wider text-emerald-400">
+            {project.projectCode || "PROJECT"}
+          </p>
+
+          <h3 className="mt-2 truncate text-lg font-semibold text-white">
+            {project.projectName}
+          </h3>
+        </div>
+
+        <span className="shrink-0 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-400">
+          {project.status || "ACTIVE"}
+        </span>
+      </div>
+
+      <div className="mt-5 space-y-3 border-t border-zinc-800 pt-4">
+        <div className="flex items-center gap-3 text-sm text-zinc-400">
+          <Building2 size={16} className="shrink-0 text-zinc-500" />
+          <span className="truncate">
+            {project.client?.clientName || "Unknown Client"}
+          </span>
+        </div>
+
+        <div className="flex items-center gap-3 text-sm text-zinc-400">
+          <FileText size={16} className="shrink-0 text-zinc-500" />
+          <span className="truncate">
+            {project.tender?.tenderTitle || "No tender information"}
+          </span>
+        </div>
+      </div>
+
+      <button
+        onClick={() => onOpen(project)}
+        className="mt-6 flex w-full items-center justify-between rounded-lg border border-zinc-700 px-4 py-2.5 text-sm font-medium text-zinc-300 transition hover:border-emerald-500/40 hover:bg-emerald-500/5 hover:text-emerald-400"
+      >
+        Open Project Vault
+
+        <ArrowRight
+          size={16}
+          className="transition-transform group-hover:translate-x-1"
+        />
+      </button>
+    </div>
+  );
+}
 
 export default function PurchaseHub() {
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [search, setSearch] = useState("");
   const [selectedProjectId, setSelectedProjectId] = useState(null);
 
   const navigate = useNavigate();
@@ -26,19 +100,10 @@ export default function PurchaseHub() {
       setLoading(true);
       setError("");
 
-      const response = await operationsApi.get("/projects");
-
-      console.log("Operations Projects Response:", response.data);
-
-      if (response.data?.success && Array.isArray(response.data.data)) {
-        setProjects(response.data.data);
-      } else {
-        setProjects([]);
-        setError("Unexpected response received from the server.");
-      }
+      const data = await fetchActiveProjects();
+      setProjects(data);
     } catch (err) {
-      console.error("Failed to fetch projects:", err);
-      console.error("Server response:", err.response?.data);
+      console.error("Failed to fetch purchase projects:", err);
 
       setError(
         err.response?.data?.message ||
@@ -55,12 +120,27 @@ export default function PurchaseHub() {
     fetchProjects();
   }, [fetchProjects]);
 
+  const filteredProjects = useMemo(() => {
+    const query = search.trim().toLowerCase();
+
+    if (!query) return projects;
+
+    return projects.filter((project) => {
+      return (
+        project.projectName?.toLowerCase().includes(query) ||
+        project.projectCode?.toLowerCase().includes(query) ||
+        project.client?.clientName?.toLowerCase().includes(query) ||
+        project.tender?.tenderTitle?.toLowerCase().includes(query)
+      );
+    });
+  }, [projects, search]);
+
   return (
     <main className="min-h-screen bg-zinc-950 text-zinc-100">
-      <div className="mx-auto max-w-7xl px-5 py-10 sm:px-8 lg:px-10">
+      <div className="mx-auto max-w-7xl px-5 py-8 sm:px-8 lg:px-10">
 
         {/* Header */}
-        <header className="mb-12 border-b border-zinc-800 pb-8">
+        <header className="mb-10 flex flex-wrap items-center justify-between gap-5 border-b border-zinc-800 pb-7">
           <div className="flex items-center gap-4">
             <div className="grid h-12 w-12 place-items-center rounded-xl bg-emerald-600">
               <Building2 size={24} className="text-white" />
@@ -70,122 +150,177 @@ export default function PurchaseHub() {
               <h1 className="text-xl font-semibold tracking-tight">
                 Vikram Engineering
               </h1>
+
               <p className="mt-1 text-xs tracking-[0.2em] text-zinc-500">
                 OPERATIONS / PURCHASE
               </p>
             </div>
           </div>
+
+          <button
+            onClick={() => navigate("/operations")}
+            className="flex items-center gap-2 rounded-lg border border-zinc-800 px-4 py-2.5 text-sm text-zinc-400 transition hover:border-zinc-600 hover:text-white"
+          >
+            <ArrowLeft size={16} />
+            Operations
+          </button>
         </header>
 
         {/* Introduction */}
-        <section className="mb-12">
+        <section className="mb-9">
           <p className="mb-3 text-sm font-medium tracking-widest text-emerald-400">
             PURCHASE WORKSPACE
           </p>
 
-          <h2 className="text-4xl font-semibold tracking-tight sm:text-5xl">
-            Active Projects
-          </h2>
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">
+                Purchase Dashboard
+              </h2>
 
-          <p className="mt-4 max-w-2xl text-sm leading-7 text-zinc-400 sm:text-base">
-            Select a project to view its details and manage purchase
-            orders, materials, and related documents.
-          </p>
-        </section>
-
-        {/* Loading */}
-        {loading ? (
-          <div className="flex h-64 items-center justify-center">
-            <Loader2 className="h-8 w-8 animate-spin text-emerald-500" />
-          </div>
-        ) : error ? (
-          /* Error State */
-          <div className="rounded-2xl border border-red-500/20 bg-zinc-900 px-6 py-12 text-center">
-            <AlertCircle className="mx-auto mb-4 h-10 w-10 text-red-400" />
-
-            <h3 className="text-lg font-semibold">
-              Failed to Load Projects
-            </h3>
-
-            <p className="mx-auto mt-2 max-w-lg text-sm text-zinc-400">
-              {error}
-            </p>
+              <p className="mt-3 max-w-2xl text-sm leading-6 text-zinc-400">
+                Manage project materials, purchase orders, vendor
+                information, and related procurement documents.
+              </p>
+            </div>
 
             <button
               onClick={fetchProjects}
-              className="mt-6 inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-emerald-500"
+              disabled={loading}
+              className="flex items-center gap-2 rounded-lg border border-zinc-800 px-4 py-2.5 text-sm text-zinc-300 transition hover:bg-zinc-900 disabled:opacity-50"
             >
-              <RefreshCw size={16} />
-              Try Again
+              <RefreshCw
+                size={16}
+                className={loading ? "animate-spin" : ""}
+              />
+              Refresh
             </button>
           </div>
-        ) : projects.length === 0 ? (
-          /* Empty State */
-          <div className="rounded-2xl border border-zinc-800 bg-zinc-900 px-6 py-16 text-center">
-            <div className="mx-auto mb-5 grid h-14 w-14 place-items-center rounded-xl bg-zinc-800 text-zinc-500">
-              <FolderOpen size={26} />
+        </section>
+
+        {/* Statistics */}
+        <section className="mb-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <StatCard
+            title="Active Projects"
+            value={loading ? "—" : projects.length}
+            description="Projects available for procurement"
+            icon={FolderKanban}
+          />
+
+          <StatCard
+            title="Purchase Orders"
+            value="—"
+            description="Purchase order tracking"
+            icon={FileText}
+          />
+
+          <StatCard
+            title="Vendors"
+            value="—"
+            description="Vendor tracking"
+            icon={Building2}
+          />
+        </section>
+
+        {/* Projects */}
+        <section>
+          <div className="mb-5 flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <h3 className="text-xl font-semibold text-white">
+                Active Projects
+              </h3>
+
+              <p className="mt-1 text-sm text-zinc-500">
+                Select a project to view its details and manage purchase orders.
+              </p>
             </div>
 
-            <h3 className="text-lg font-semibold">
-              No Active Projects
-            </h3>
-
-            <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-zinc-400">
-              There are currently no projects available in the purchase
-              workspace.
-            </p>
+            <span className="rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-xs text-zinc-400">
+              {loading ? "Loading..." : `${filteredProjects.length} Projects`}
+            </span>
           </div>
-        ) : (
-          /* Project Cards */
-          <section className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {projects.map((project) => (
-              <div
-                key={project._id}
-                onClick={() => setSelectedProjectId(project._id)}
-                className="group flex cursor-pointer flex-col rounded-2xl border border-zinc-800 bg-zinc-900 p-6 transition-all duration-300 hover:-translate-y-1 hover:border-emerald-500/50 hover:bg-zinc-900/80"
+
+          {/* Search */}
+          <div className="relative mb-6 max-w-md">
+            <Search
+              size={18}
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500"
+            />
+
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search by project, code, client..."
+              className="w-full rounded-lg border border-zinc-800 bg-zinc-900 py-3 pl-10 pr-4 text-sm text-white outline-none transition placeholder:text-zinc-600 focus:border-emerald-500/50"
+            />
+          </div>
+
+          {/* Loading */}
+          {loading ? (
+            <div className="flex flex-col items-center justify-center rounded-xl border border-zinc-800 bg-zinc-900/50 py-20">
+              <Loader2
+                size={28}
+                className="animate-spin text-emerald-400"
+              />
+
+              <p className="mt-4 text-sm text-zinc-400">
+                Loading active projects...
+              </p>
+            </div>
+          ) : error ? (
+            <div className="rounded-xl border border-red-500/20 bg-red-500/5 py-14 text-center">
+              <AlertCircle
+                size={30}
+                className="mx-auto text-red-400"
+              />
+
+              <p className="mt-3 text-sm text-red-400">{error}</p>
+
+              <button
+                onClick={fetchProjects}
+                className="mt-4 rounded-lg bg-zinc-800 px-4 py-2 text-sm text-white transition hover:bg-zinc-700"
               >
-                <div className="mb-8 flex items-start justify-between">
-                  <div className="grid h-12 w-12 place-items-center rounded-xl bg-emerald-500/10 text-emerald-400">
-                    <Building2 size={23} />
-                  </div>
+                Try Again
+              </button>
+            </div>
+          ) : filteredProjects.length === 0 ? (
+            <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 py-16 text-center">
+              <FolderKanban
+                size={32}
+                className="mx-auto text-zinc-600"
+              />
 
-                  <span className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-400">
-                    Active
-                  </span>
-                </div>
+              <h4 className="mt-4 font-medium text-zinc-300">
+                {search ? "No matching projects" : "No active projects"}
+              </h4>
 
-                <h3 className="text-lg font-semibold">
-                  {project.projectName}
-                </h3>
-
-                <p className="mt-3 flex items-center gap-2 text-sm text-zinc-400">
-                  <FolderOpen size={16} className="shrink-0" />
-                  {project.client?.clientName || "Unknown Client"}
-                </p>
-
-                <div className="mt-8 flex items-center justify-between text-sm font-medium text-emerald-400">
-                  <span>Open Project Vault</span>
-
-                  <ArrowRight
-                    size={16}
-                    className="transition-transform group-hover:translate-x-1"
-                  />
-                </div>
-              </div>
-            ))}
-          </section>
-        )}
+              <p className="mt-2 text-sm text-zinc-500">
+                {search
+                  ? "Try changing your search keywords."
+                  : "Active projects will appear here when they are available."}
+              </p>
+            </div>
+          ) : (
+            <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+              {filteredProjects.map((project) => (
+                <ProjectCard
+                  key={project._id}
+                  project={project}
+                  onOpen={(selectedProject) =>
+                    setSelectedProjectId(selectedProject._id)
+                  }
+                />
+              ))}
+            </div>
+          )}
+        </section>
 
         {/* Project Details Modal */}
         {selectedProjectId && (
           <ProjectDetailsModal
             projectId={selectedProjectId}
             onClose={() => setSelectedProjectId(null)}
-            onCreatePO={() =>
-              navigate(
-                `/operations/purchase/projects/${selectedProjectId}`
-              )
-            }
           />
         )}
 

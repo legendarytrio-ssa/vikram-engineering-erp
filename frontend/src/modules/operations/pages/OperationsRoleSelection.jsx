@@ -22,7 +22,7 @@ const operationsRoles = [
       "Manage site inspections, verify material quality, and generate QC reports.",
     icon: Microscope,
     path: "qc",
-    available: false,
+    available: true,
   },
 ];
 

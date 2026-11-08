@@ -2,6 +2,7 @@ import Project from "../../../models/Project.js";
 import { getDownloadUrl, getViewUrl, uploadFilesToTigris } from "../../../utils/tigrisHelper.js";
 import QualityControl from "../models/QualityControl.js";
 import ItemPurchase from "../models/ItemPurchase.js";
+import mongoose from "mongoose";
 
 /**
  * Fetches all active projects for Operations Dashboards.
@@ -86,6 +87,84 @@ export const fetchPurchaseOrderDocumentUrl = async (
   }
 
   // Generate the appropriate signed URL
+  if (disposition === "inline") {
+    return getViewUrl(document.key, document.originalName);
+  }
+
+  return getDownloadUrl(document.key, document.originalName);
+};
+
+//Create a Quality Control report
+export const createQCReport = async({
+  projectId,
+  vendorName,
+  title,
+  description,
+  customFields,
+  files,
+  createdBy
+})=>{
+    // Validate project ID.
+  if (!mongoose.Types.ObjectId.isValid(projectId)) {
+    throw new Error("Invalid project ID.");
+  }
+  // Ensure the project exists.
+  const project = await Project.findById(projectId);
+
+  if(!project){
+    throw new Error("Project not found");
+  }
+
+    // Upload supporting documents to Tigris.
+  const uploadedDocuments = files?.length
+    ? await uploadFilesToTigris(
+        files,
+        `projects/${projectId}/qc-reports`
+      )
+    : [];
+
+    // Create QC report.
+  const qcReport = await QualityControl.create({
+    project: projectId,
+    vendorName: vendorName?.trim() || "",
+    title: title.trim(),
+    description: description.trim(),
+    customFields: customFields || [],
+    docs: uploadedDocuments,
+    createdBy,
+  });
+
+    return qcReport;
+
+
+}
+
+
+// Generate a View or Download URL for a QC report document
+export const fetchQCReportDocumentUrl = async (
+  projectId,
+  reportId,
+  documentId,
+  disposition = "attachment"
+) => {
+  // Find the QC report belonging to this project
+  const report = await QualityControl.findOne({
+    _id: reportId,
+    project: projectId,
+  }).select("docs");
+
+  if (!report) {
+    return null;
+  }
+
+  // Find the requested document inside the QC report
+  const document = report.docs.id(documentId);
+
+  if (!document) {
+    return null;
+  }
+
+  // Generate the appropriate signed Tigris URL
   if (disposition === "inline") {
     return getViewUrl(document.key, document.originalName);
   }

@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import OperationsRoleSelection from "./pages/OperationsRoleSelection";
 import PurchaseRoutes from "./pages/purchase/PurchaseRoutes";
+import QCRoutes from "./pages/qc/QCRoutes";
 // import QCRoutes from "../pages/qc/QCRoutes"; 
 
 export default function OperationsRoutes() {
@@ -8,7 +9,7 @@ export default function OperationsRoutes() {
     <Routes>
       <Route index element={<OperationsRoleSelection />} />
       <Route path="purchase/*" element={<PurchaseRoutes />} />
-      {/* <Route path="qc/*" element={<QCRoutes />} /> */}
+      <Route path="qc/*" element={<QCRoutes />} />
       <Route path="*" element={<Navigate to="/operations" replace />} />
     </Routes>
   );

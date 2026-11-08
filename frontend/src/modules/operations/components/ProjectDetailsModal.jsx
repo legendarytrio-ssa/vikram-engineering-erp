@@ -1,6 +1,6 @@
-
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+
 import {
   X,
   Loader2,
@@ -19,6 +19,8 @@ import {
   Package,
 } from "lucide-react";
 
+
+import { fetchProjectDetails } from "../services/operationServices.js";
 import operationsApi from "../api/operations_Api.js";
 
 function Detail({ label, value }) {
@@ -34,6 +36,7 @@ function Detail({ label, value }) {
       <p className="mb-1 text-xs font-medium uppercase tracking-wide text-zinc-500">
         {label}
       </p>
+
       <p className="break-words whitespace-pre-wrap text-sm text-zinc-200">
         {displayValue}
       </p>
@@ -76,36 +79,39 @@ export default function ProjectDetailsModal({ projectId, onClose }) {
   const [error, setError] = useState("");
   const [showPurchaseOrders, setShowPurchaseOrders] = useState(false);
 
+  // Fetch project details through the service layer
   useEffect(() => {
-    const fetchProjectDetails = async () => {
+    const loadProjectDetails = async () => {
       try {
         setLoading(true);
         setError("");
 
-        const response = await operationsApi.get(`/projects/${projectId}`);
+        const data = await fetchProjectDetails(projectId);
 
-        if (response.data.success) {
-          setProject(response.data.data);
-        } else {
-          setError("Unable to load project details.");
-        }
+        setProject(data);
       } catch (err) {
         console.error("Failed to fetch project details:", err);
+
         setError(
-          err.response?.data?.message || "Failed to load project details."
+          err.response?.data?.message ||
+            err.message ||
+            "Failed to load project details."
         );
       } finally {
         setLoading(false);
       }
     };
 
-    if (projectId) fetchProjectDetails();
+    if (projectId) {
+      loadProjectDetails();
+    }
   }, [projectId]);
 
   if (!projectId) return null;
 
   const handleCreatePO = () => {
     onClose();
+
     navigate(
       `/operations/purchase/projects/${projectId}/purchase-orders/new`
     );
@@ -113,6 +119,7 @@ export default function ProjectDetailsModal({ projectId, onClose }) {
 
   const purchaseOrders = project?.purchaseItems || [];
 
+  // Generate backend document endpoint URLs
   const getDocumentUrl = (poId, documentId, disposition) => {
     return operationsApi.getUri({
       url: `/projects/${projectId}/purchase-orders/${poId}/documents/${documentId}`,
@@ -140,6 +147,7 @@ export default function ProjectDetailsModal({ projectId, onClose }) {
               <h2 className="text-lg font-semibold text-white">
                 Project Overview
               </h2>
+
               <p className="text-xs text-zinc-500">
                 Complete project information
               </p>
@@ -158,14 +166,16 @@ export default function ProjectDetailsModal({ projectId, onClose }) {
         <div className="overflow-y-auto p-5 sm:p-6">
           {loading ? (
             <div className="flex items-center justify-center gap-3 py-20 text-zinc-400">
-              <Loader2 size={22} className="animate-spin text-emerald-400" />
+              <Loader2
+                size={22}
+                className="animate-spin text-emerald-400"
+              />
               Loading project information...
             </div>
           ) : error ? (
             <div className="py-16 text-center text-red-400">{error}</div>
           ) : project ? (
             <div className="space-y-8">
-
               {/* Project Heading */}
               <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-5">
                 <div className="flex flex-wrap items-start justify-between gap-3">
@@ -173,6 +183,7 @@ export default function ProjectDetailsModal({ projectId, onClose }) {
                     <p className="mb-1 text-xs font-medium uppercase tracking-wider text-emerald-400">
                       {project.projectCode || "Project"}
                     </p>
+
                     <h3 className="text-xl font-bold text-white">
                       {project.projectName}
                     </h3>
@@ -190,6 +201,7 @@ export default function ProjectDetailsModal({ projectId, onClose }) {
                 <Detail label="Project Code" value={project.projectCode} />
                 <Detail label="Project ID" value={project._id} />
                 <Detail label="Status" value={project.status} />
+
                 <Detail
                   label="Created At"
                   value={
@@ -198,6 +210,7 @@ export default function ProjectDetailsModal({ projectId, onClose }) {
                       : null
                   }
                 />
+
                 <Detail
                   label="Last Updated"
                   value={
@@ -206,6 +219,7 @@ export default function ProjectDetailsModal({ projectId, onClose }) {
                       : null
                   }
                 />
+
                 <Detail
                   label="Created By"
                   value={project.createdBy?._id || project.createdBy}
@@ -214,12 +228,20 @@ export default function ProjectDetailsModal({ projectId, onClose }) {
 
               {/* Client Information */}
               <Section title="Client Information" icon={Building2}>
-                <Detail label="Client Name" value={project.client?.clientName} />
+                <Detail
+                  label="Client Name"
+                  value={project.client?.clientName}
+                />
+
                 <Detail
                   label="Contact Person"
                   value={project.client?.contactPerson}
                 />
-                <Detail label="Client ID" value={project.client?._id} />
+
+                <Detail
+                  label="Client ID"
+                  value={project.client?._id}
+                />
               </Section>
 
               {/* Tender Information */}
@@ -228,11 +250,16 @@ export default function ProjectDetailsModal({ projectId, onClose }) {
                   label="Tender Title"
                   value={project.tender?.tenderTitle}
                 />
+
                 <Detail
                   label="Tender Reference"
                   value={project.tender?.tenderRef}
                 />
-                <Detail label="Tender ID" value={project.tender?._id} />
+
+                <Detail
+                  label="Tender ID"
+                  value={project.tender?._id}
+                />
               </Section>
 
               {/* Sales Information */}
@@ -241,6 +268,7 @@ export default function ProjectDetailsModal({ projectId, onClose }) {
                   label="PO Description"
                   value={project.salesData?.poDescription}
                 />
+
                 <Detail
                   label="Sales Documents"
                   value={project.salesData?.documents?.length ?? 0}
@@ -253,14 +281,17 @@ export default function ProjectDetailsModal({ projectId, onClose }) {
                   label="QC Records"
                   value={project.qualityRecords?.length ?? 0}
                 />
+
                 <Detail
                   label="Purchase Records"
                   value={purchaseOrders.length}
                 />
+
                 <Detail
                   label="QC Documents"
                   value={project.operationsData?.qcDocuments?.length ?? 0}
                 />
+
                 <Detail
                   label="Purchase Documents"
                   value={
@@ -284,6 +315,7 @@ export default function ProjectDetailsModal({ projectId, onClose }) {
                       <h3 className="font-semibold text-white">
                         See Purchase Orders
                       </h3>
+
                       <p className="mt-1 text-sm text-zinc-400">
                         {purchaseOrders.length} purchase orders
                       </p>
@@ -470,6 +502,7 @@ export default function ProjectDetailsModal({ projectId, onClose }) {
                       <h3 className="font-semibold text-white">
                         Purchase Orders
                       </h3>
+
                       <p className="mt-1 text-sm text-zinc-400">
                         Create a new purchase order for this project.
                       </p>
