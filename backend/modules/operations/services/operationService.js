@@ -94,6 +94,7 @@ export const fetchPurchaseOrderDocumentUrl = async (
   return getDownloadUrl(document.key, document.originalName);
 };
 
+//Create a Quality Control report
 export const createQCReport = async({
   projectId,
   vendorName,
@@ -137,6 +138,39 @@ export const createQCReport = async({
 
 
 }
+
+
+// Generate a View or Download URL for a QC report document
+export const fetchQCReportDocumentUrl = async (
+  projectId,
+  reportId,
+  documentId,
+  disposition = "attachment"
+) => {
+  // Find the QC report belonging to this project
+  const report = await QualityControl.findOne({
+    _id: reportId,
+    project: projectId,
+  }).select("docs");
+
+  if (!report) {
+    return null;
+  }
+
+  // Find the requested document inside the QC report
+  const document = report.docs.id(documentId);
+
+  if (!document) {
+    return null;
+  }
+
+  // Generate the appropriate signed Tigris URL
+  if (disposition === "inline") {
+    return getViewUrl(document.key, document.originalName);
+  }
+
+  return getDownloadUrl(document.key, document.originalName);
+};
 
 /**
  * (Pending) Adds independent documents to the QC Vault array

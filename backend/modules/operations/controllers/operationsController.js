@@ -208,3 +208,29 @@ export const submitQCReport = async (req, res) => {
     });
   }
 };
+
+export const getQCReportDocument = wrapAsync( async (req, res, next) => {
+  try {
+    const { id: projectId, reportId, documentId } = req.params;
+    const disposition =
+      req.query.disposition === "inline" ? "inline" : "attachment";
+
+    const url = await operationService.fetchQCReportDocumentUrl(
+      projectId,
+      reportId,
+      documentId,
+      disposition
+    );
+
+    if (!url) {
+      return res.status(404).json({
+        success: false,
+        message: "QC report or document not found.",
+      });
+    }
+
+    return res.redirect(url);
+  } catch (error) {
+    next(error);
+  }
+});
