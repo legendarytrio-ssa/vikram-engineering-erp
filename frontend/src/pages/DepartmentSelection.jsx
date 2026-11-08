@@ -41,7 +41,7 @@ const departments = [
       "Manage accounts, transactions, budgets and financial records.",
     icon: Wallet,
     path: "/finance",
-    available: false,
+    available: true,
   },
   {
     name: "Operations",
