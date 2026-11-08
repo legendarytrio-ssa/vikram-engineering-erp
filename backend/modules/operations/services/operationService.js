@@ -106,3 +106,19 @@ export const addQCDocumentToProject = async (projectId, files) => {
 export const addPurchaseDocumentToProject = async (projectId, files) => {
   // Logic to upload to Tigris and $push to operationsData.purchaseDocuments
 };
+
+
+
+// // Forward this Specific PO of a Project to Finance Department
+// export const forwardPOToFinance = async (projectId, poId) => {
+//   const po = await ItemPurchase.findOne({ _id: poId, project: projectId });
+//   if (!po) return null;
+
+//   po.sentToFinance = true;
+//   if (!po.sentToFinanceAt) po.sentToFinanceAt = new Date();
+//   po.financeStatus = po.financeStatus || "DUE";
+//   po.status = "INVOICE_APPROVED";
+
+//   await po.save();
+//   return po;
+// };
