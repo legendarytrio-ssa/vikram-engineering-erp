@@ -1,7 +1,8 @@
 import mongoose from "mongoose";
 import Tender from "../models/Tender.js";
 import Client from "../models/Client.js";
-import { uploadFilesToTigris, deleteFileFromTigris, getDownloadUrl } from "../../../utils/tigrisHelper.js";
+import Project from "../../../models/Project.js";
+import { uploadFilesToTigris, deleteFileFromTigris, getDownloadUrl, getViewUrl } from "../../../utils/tigrisHelper.js";
 
 export const getTenders = async (req, res) => {
   try {
@@ -208,5 +209,185 @@ export const getTenderFileUrl = async (req, res) => {
   } catch (error) {
     console.error("Download link error:", error);
     res.status(500).json({ error: "Failed to generate secure download link." });
+  }
+};
+
+// CEO Action: Approve Tender for Bidding
+// export const approveTender = async (req, res) => {
+//   try {
+//     const { id } = req.params;
+    
+//     const tender = await Tender.findById(id);
+//     if (!tender) return res.status(404).json({ error: "Tender not found." });
+//     if (tender.status !== "PENDING") {
+//       return res.status(400).json({ error: "Only PENDING tenders can be approved." });
+//     }
+
+//     // Changing to APPLIED indicates the CEO approved it and it is out for bidding
+//     tender.status = "APPLIED";
+//     const updatedTender = await tender.save();
+
+//     return res.status(200).json({ message: "Tender approved for bidding.", tender: updatedTender });
+//   } catch (error) {
+//     return res.status(500).json({ error: "Failed to approve tender." });
+//   }
+// };
+
+// CEO Action: Discard/Reject Tender
+export const rejectTender = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const tender = await Tender.findById(id);
+    if (!tender) return res.status(404).json({ error: "Tender not found." });
+    
+    tender.status = "REJECTED";
+    const updatedTender = await tender.save();
+
+    return res.status(200).json({ message: "Tender discarded.", tender: updatedTender });
+  } catch (error) {
+    return res.status(500).json({ error: "Failed to reject tender." });
+  }
+};
+
+// CEO Action: Win Bid & Convert to Active Project
+export const convertToProject = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const { id } = req.params;
+    
+    const tender = await Tender.findById(id).session(session);
+    if (!tender) throw new Error("Tender not found.");
+    if (tender.status !== "PO_ISSUED") throw new Error("Only tenders with an issued PO can be converted to Live Projects.");
+
+    // 1. Generate new Project record matching the ProjectSchema
+    const newProject = new Project({
+      projectCode: `PRJ-${tender.code}`,
+      projectName: tender.title,
+      tender: tender._id,
+      client: tender.client,
+      status: "ACTIVE", 
+      
+      // Initialize the department vaults
+      salesData: { documents: [] },
+      operationsData: { qcDocuments: [], purchaseDocuments: [] },
+      financeData: { documents: [] },
+      
+      // Preserve the tender category dynamically in the others Map
+      others: { tenderCategory: tender.category }
+    });
+
+    const savedProject = await newProject.save({ session });
+
+    // 2. Update Tender to LIVE
+    tender.status = "LIVE";
+    
+    // If your Tender schema includes the project reference, uncomment the next line:
+    // tender.project = savedProject._id; 
+    
+    await tender.save({ session });
+
+    await session.commitTransaction();
+    session.endSession();
+
+    return res.status(200).json({ 
+      message: "Tender won! Project ID generated and isolated workspaces initialized.", 
+      project: savedProject 
+    });
+  } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
+    
+    if (error.name === "ValidationError") {
+      return res.status(400).json({ 
+        error: "Project validation failed.", 
+        details: error.message 
+      });
+    }
+    
+    return res.status(400).json({ error: error.message || "Failed to convert tender to project." });
+  }
+};
+
+// Sales Action: Upload PO Documents and change status to PO_ISSUED
+export const markPoIssued = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const tender = await Tender.findById(id);
+    if (!tender) return res.status(404).json({ error: "Tender not found." });
+    
+    // Ensure the tender was actually approved by the CEO first
+    if (tender.status !== "APPLIED") {
+      return res.status(400).json({ error: "Only APPLIED tenders can receive a Purchase Order." });
+    }
+
+    const poFiles = req.files?.poDocs || [];
+    if (poFiles.length === 0) {
+      return res.status(400).json({ error: "Purchase Order documents are required." });
+    }
+
+    // Upload the PO files to a dedicated folder in Tigris
+    const poDocsMetadata = await uploadFilesToTigris(poFiles, `tenders/${tender.code}/poDocs`);
+
+    // Update state and attach files
+    tender.status = "PO_ISSUED";
+    tender.poDocs.push(...poDocsMetadata);
+    
+    const updatedTender = await tender.save();
+
+    return res.status(200).json({ 
+      message: "PO uploaded. Tender forwarded to CEO for project creation.", 
+      tender: updatedTender 
+    });
+  } catch (error) {
+    console.error("Mark PO Issued error:", error);
+    return res.status(500).json({ error: "Failed to upload PO and update status." });
+  }
+};
+
+// --- GENERATE INLINE VIEW LINK ---
+export const getTenderFileViewUrl = async (req, res) => {
+  try {
+    const { fileKey, originalName } = req.query;
+    if (!fileKey) return res.status(400).json({ error: "fileKey is required." });
+
+    // Generates a URL with 'inline' disposition so browsers open PDFs instead of downloading them
+    const url = await getViewUrl(fileKey, originalName || "view");
+    res.status(200).json({ url });
+  } catch (error) {
+    console.error("View link error:", error);
+    res.status(500).json({ error: "Failed to generate secure view link." });
+  }
+};
+
+// --- CEO Action: Approve Tender & Upload Application Docs ---
+export const approveTender = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const tender = await Tender.findById(id);
+    if (!tender) return res.status(404).json({ error: "Tender not found." });
+    if (tender.status !== "PENDING") {
+      return res.status(400).json({ error: "Only PENDING tenders can be approved." });
+    }
+
+    // Process any Application Documents uploaded by the CEO during approval
+    const appFiles = req.files?.applicationDocs || [];
+    if (appFiles.length > 0) {
+      const uploaderId = req.user?._id || undefined;
+      const appDocsMetadata = await uploadFilesToTigris(appFiles, `tenders/${tender.code}/applicationDocs`, uploaderId);
+      tender.applicationDocs.push(...appDocsMetadata);
+    }
+
+    // Changing to APPLIED indicates the CEO approved it and it is out for bidding
+    tender.status = "APPLIED";
+    const updatedTender = await tender.save();
+
+    return res.status(200).json({ message: "Tender approved for bidding.", tender: updatedTender });
+  } catch (error) {
+    return res.status(500).json({ error: "Failed to approve tender." });
   }
 };

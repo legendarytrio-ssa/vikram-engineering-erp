@@ -20,7 +20,6 @@ const ProjectSchema = new Schema(
       default: "ACTIVE",
       index: true,
     },
-    createdBy: { type: oid, ref: "User", required: true },
 
     // ---------------------------------------------------
     // 2. SALES DEPARTMENT

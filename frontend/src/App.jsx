@@ -5,6 +5,8 @@ import DepartmentSelection from "./pages/DepartmentSelection";
 import SalesRoutes from "./modules/sales/Routes.jsx";
 import OperationsRoutes from "./modules/operations/Routes.jsx";
 import FinanceRoutes from "./modules/finance/Routes.jsx";
+import CEORoutes from "./modules/ceo/Routes.jsx";
+
 function App() {
   return (
     <Routes>
@@ -12,6 +14,7 @@ function App() {
       <Route path="/sales/*" element={<SalesRoutes />} />
       <Route path="/operations/*" element={<OperationsRoutes />} />
       <Route path="/finance/*" element={<FinanceRoutes />} />
+      <Route path="/ceo/*" element={<CEORoutes />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
