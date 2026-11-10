@@ -9,6 +9,7 @@ import {
   rejectTender,
   convertToProject,
   markPoIssued,
+  getTenderFileViewUrl,
 } from "../controllers/tenderController.js";
 import { upload } from "../../../config/upload.js";
 
@@ -25,7 +26,9 @@ router.post("/:id/files", upload.fields([{ name: "tenderDocs", maxCount: 10 }]),
 router.delete("/:id/files", deleteTenderFile);
 router.get("/download-file", getTenderFileUrl);
 
-router.patch("/:id/approve", approveTender);
+router.get("/view-file", getTenderFileViewUrl);
+
+router.patch("/:id/approve", upload.fields([{ name: "applicationDocs", maxCount: 10 }]), approveTender);
 router.patch("/:id/reject", rejectTender);
 router.post("/:id/convert", convertToProject);
 

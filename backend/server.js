@@ -11,6 +11,7 @@ import financeRoutes from "./modules/finance/routes/financeRoutes.js";
 // Adjust the path to match where you placed the operations folder 
 // (e.g., "./modules/operations/routes/operationsRoutes.js" if you put it inside modules)
 import operationsRoutes from "./modules/operations/routes/operationsRoutes.js"; 
+import projectRoutes from "./routes/projectRoutes.js"
 
 dns.setServers(["1.1.1.1", "0.0.0.0"]);
 
@@ -37,6 +38,11 @@ app.use("/api/operations", operationsRoutes);
 /// FINANCE DEPARTMENT ROUTES
 /// ======================
 app.use("/api/finance", financeRoutes);
+
+/// ======================
+/// Project ROUTES
+/// ======================
+app.use("/api", projectRoutes);
 
 // =======================
 // BACKEND TESTING
