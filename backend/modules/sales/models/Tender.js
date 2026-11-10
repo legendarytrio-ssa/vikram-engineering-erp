@@ -11,11 +11,13 @@ const TenderSchema = new Schema(
     category: { type: String, enum: ["GOVT", "PVT"], required: true },
     description: String,
     client: { type: oid, ref: "Client", required: true, index: true }, // replaces PartyType + PartyName
-    tenderDocs: [AttachmentSchema],        // uploaded by Sales
-    applicationDocs: [AttachmentSchema],   // produced by CEO; copy stays in DB
+    // File Vaults
+    tenderDocs: [AttachmentSchema],        // Initial bidding specs uploaded by Sales
+    applicationDocs: [AttachmentSchema],   // Bid documents produced by CEO
+    poDocs: [AttachmentSchema],            // Winning Purchase Orders uploaded by Sales
     status: {
       type: String,
-      enum: ["PENDING", "APPLIED", "LIVE", "REJECTED"],
+      enum: ["PENDING", "APPLIED", "PO_ISSUED", "LIVE", "REJECTED"],
       default: "PENDING",
       index: true,
     },
