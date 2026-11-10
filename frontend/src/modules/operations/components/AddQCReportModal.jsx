@@ -70,7 +70,6 @@ export default function AddQCReportModal({
     setDocuments((prev) => {
       const combined = [...prev, ...selectedFiles];
 
-      // Prevent duplicate file selections.
       return combined.filter(
         (file, index, array) =>
           array.findIndex(
@@ -82,7 +81,6 @@ export default function AddQCReportModal({
       );
     });
 
-    // Allow selecting the same file again after removal.
     e.target.value = "";
   };
 
@@ -96,6 +94,8 @@ export default function AddQCReportModal({
   // Submit QC report.
   const handleSubmit = async (e) => {
     e.preventDefault();
+    e.stopPropagation();
+
     setError("");
 
     if (!title.trim()) {
@@ -108,7 +108,6 @@ export default function AddQCReportModal({
       return;
     }
 
-    // Prepare custom parameters.
     const cleanedFields = customFields
       .map(({ name, value }) => ({
         name: name.trim(),
@@ -116,7 +115,6 @@ export default function AddQCReportModal({
       }))
       .filter((field) => field.name || field.value);
 
-    // Both name and value must be provided.
     const incompleteField = cleanedFields.some(
       (field) => !field.name || !field.value
     );
@@ -174,8 +172,17 @@ export default function AddQCReportModal({
   };
 
   return (
-    <div className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6">
-      <div className="w-full max-w-3xl max-h-[94vh] bg-zinc-950 border border-zinc-800 rounded-2xl shadow-2xl flex flex-col overflow-hidden">
+    // Modal backdrop
+    <div
+      className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6"
+      onClick={onClose}
+    >
+      {/* Modal content: prevent events from reaching the backdrop */}
+      <div
+        className="w-full max-w-3xl max-h-[94vh] bg-zinc-950 border border-zinc-800 rounded-2xl shadow-2xl flex flex-col overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+        onMouseDown={(e) => e.stopPropagation()}
+      >
 
         {/* Header */}
         <div className="flex items-center justify-between gap-4 p-5 border-b border-zinc-800">
