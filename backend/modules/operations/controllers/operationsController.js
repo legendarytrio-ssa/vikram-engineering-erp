@@ -6,14 +6,14 @@ import mongoose from "mongoose";
 // @desc    Get all active projects for Operations Dashboards
 // @route   GET /api/operations/projects
 export const getOperationsProjects = wrapAsync(
-    async (req, res, next) => {
-        const projects = await operationService.fetchActiveProjects();
-        res.status(200).json({
-            success: true,
-            count: projects.length,
-            data: projects
-        });
-    }
+  async (req, res, next) => {
+    const projects = await operationService.fetchActiveProjects();
+    res.status(200).json({
+      success: true,
+      count: projects.length,
+      data: projects
+    });
+  }
 )
 
 // @desc    Get a single project for the Project Vault
@@ -22,9 +22,9 @@ export const getProjectVault = wrapAsync(async (req, res, next) => {
   const project = await operationService.fetchProjectVault(req.params.id);
 
   if (!project) {
-    return res.status(404).json({ 
-      success: false, 
-      message: "Project not found" 
+    return res.status(404).json({
+      success: false,
+      message: "Project not found"
     });
   }
 
@@ -37,7 +37,7 @@ export const getProjectVault = wrapAsync(async (req, res, next) => {
 // @desc    Create a new Purchase Order with Tigris document uploads
 // @route   POST /api/operations/projects/:id/purchase-orders
 export const submitPurchaseOrder = wrapAsync(
-  async(req,res,next)=>{
+  async (req, res, next) => {
     const projectId = req.params.id;
     const formData = req.body;
     const files = req.files;
@@ -47,9 +47,9 @@ export const submitPurchaseOrder = wrapAsync(
     const newPO = await operationService.createPurchaseOrder(projectId, formData, files, dummyUserId);
 
     res.status(201).json({
-    success: true,
-    message: "Purchase Order and documents successfully uploaded.",
-    data: newPO
+      success: true,
+      message: "Purchase Order and documents successfully uploaded.",
+      data: newPO
     });
   }
 )
@@ -77,13 +77,13 @@ export const uploadPurchaseDocument = wrapAsync(async (req, res, next) => {
 });
 
 
-export const getPurchaseOrderDocument = wrapAsync(async(req,res,next)=>{
-    
+export const getPurchaseOrderDocument = wrapAsync(async (req, res, next) => {
+
   const {
-    id:projectId,
+    id: projectId,
     poId,
     documentId
-  }= req.params;
+  } = req.params;
 
   const disposition = req.query.disposition === "inline" ? "inline" : "attachment";
 
@@ -94,7 +94,7 @@ export const getPurchaseOrderDocument = wrapAsync(async(req,res,next)=>{
     disposition
   )
 
-    if (!url) {
+  if (!url) {
     return res.status(404).json({
       success: false,
       message: "Purchase order or document not found.",
@@ -104,6 +104,138 @@ export const getPurchaseOrderDocument = wrapAsync(async(req,res,next)=>{
   res.redirect(302, url);
 });
 
+
+/**
+ * GET /projects/:id/purchase-orders/:poId
+ * Fetch one Purchase Order.
+ */
+export const getPurchaseOrder = wrapAsync(async (req, res) => {
+  const { id: projectId, poId } = req.params;
+
+  if (
+    !mongoose.Types.ObjectId.isValid(projectId) ||
+    !mongoose.Types.ObjectId.isValid(poId)
+  ) {
+    return res.status(400).json({
+      success: false,
+      message: "Invalid project or purchase order ID.",
+    });
+  }
+
+  const purchaseOrder = await operationService.fetchPurchaseOrder(
+    projectId,
+    poId
+  );
+
+  if (!purchaseOrder) {
+    return res.status(404).json({
+      success: false,
+      message: "Purchase Order not found.",
+    });
+  }
+
+  return res.status(200).json({
+    success: true,
+    data: purchaseOrder,
+  });
+});
+
+
+/**
+ * PUT /projects/:id/purchase-orders/:poId
+ * Update an existing Purchase Order.
+ */
+export const editPurchaseOrder = wrapAsync(async (req, res) => {
+  const { id: projectId, poId } = req.params;
+
+  if (
+    !mongoose.Types.ObjectId.isValid(projectId) ||
+    !mongoose.Types.ObjectId.isValid(poId)
+  ) {
+    return res.status(400).json({
+      success: false,
+      message: "Invalid project or purchase order ID.",
+    });
+  }
+
+  const updatedPurchaseOrder =
+    await operationService.updatePurchaseOrder(
+      projectId,
+      poId,
+      req.body,
+      req.files || []
+    );
+
+  if (!updatedPurchaseOrder) {
+    return res.status(404).json({
+      success: false,
+      message: "Purchase Order not found.",
+    });
+  }
+
+  return res.status(200).json({
+    success: true,
+    message: "Purchase Order updated successfully.",
+    data: updatedPurchaseOrder,
+  });
+});
+
+
+/**
+ * DELETE /projects/:id/purchase-orders/:poId/documents/:documentId
+ */
+export const deletePurchaseOrderDocument = wrapAsync(
+  async (req, res) => {
+    const { id: projectId, poId, documentId } = req.params;
+
+    const updatedPO =
+      await operationService.deletePurchaseOrderDocument(
+        projectId,
+        poId,
+        documentId
+      );
+
+    if (!updatedPO) {
+      return res.status(404).json({
+        success: false,
+        message: "Purchase Order or document not found.",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Purchase Order document deleted successfully.",
+      data: updatedPO,
+    });
+  }
+);
+
+/**
+ * DELETE /projects/:id/purchase-orders/:poId
+ */
+export const removePurchaseOrder = wrapAsync(
+  async (req, res) => {
+    const { id: projectId, poId } = req.params;
+
+    const deletedPO = await operationService.deletePurchaseOrder(
+      projectId,
+      poId
+    );
+
+    if (!deletedPO) {
+      return res.status(404).json({
+        success: false,
+        message: "Purchase Order not found.",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Purchase Order deleted successfully.",
+      data: deletedPO,
+    });
+  }
+);
 
 export const submitQCReport = async (req, res) => {
   try {
@@ -189,7 +321,7 @@ export const submitQCReport = async (req, res) => {
       description,
       customFields: parsedCustomFields,
       files: req.files || [],
-      
+
     });
 
     return res.status(201).json({
@@ -209,7 +341,7 @@ export const submitQCReport = async (req, res) => {
   }
 };
 
-export const getQCReportDocument = wrapAsync( async (req, res, next) => {
+export const getQCReportDocument = wrapAsync(async (req, res, next) => {
   try {
     const { id: projectId, reportId, documentId } = req.params;
     const disposition =
@@ -234,3 +366,147 @@ export const getQCReportDocument = wrapAsync( async (req, res, next) => {
     next(error);
   }
 });
+
+// @desc    Get a single QC Report
+// @route   GET /api/operations/projects/:id/qc-reports/:reportId
+export const getQCReport = wrapAsync(async (req, res) => {
+  const { id: projectId, reportId } = req.params;
+
+  if (
+    !mongoose.Types.ObjectId.isValid(projectId) ||
+    !mongoose.Types.ObjectId.isValid(reportId)
+  ) {
+    return res.status(400).json({
+      success: false,
+      message: "Invalid project or QC report ID.",
+    });
+  }
+
+  const qcReport = await operationService.fetchQCReport(
+    projectId,
+    reportId
+  );
+
+  if (!qcReport) {
+    return res.status(404).json({
+      success: false,
+      message: "QC Report not found.",
+    });
+  }
+
+  return res.status(200).json({
+    success: true,
+    data: qcReport,
+  });
+});
+
+// @desc    Update an existing QC Report
+// @route   PUT /api/operations/projects/:id/qc-reports/:reportId
+export const editQCReport = wrapAsync(async (req, res) => {
+  const { id: projectId, reportId } = req.params;
+
+  if (
+    !mongoose.Types.ObjectId.isValid(projectId) ||
+    !mongoose.Types.ObjectId.isValid(reportId)
+  ) {
+    return res.status(400).json({
+      success: false,
+      message: "Invalid project or QC report ID.",
+    });
+  }
+
+  const updatedQCReport = await operationService.updateQCReport(
+    projectId,
+    reportId,
+    req.body,
+    req.files || []
+  );
+
+  if (!updatedQCReport) {
+    return res.status(404).json({
+      success: false,
+      message: "QC Report not found.",
+    });
+  }
+
+  return res.status(200).json({
+    success: true,
+    message: "QC Report updated successfully.",
+    data: updatedQCReport,
+  });
+});
+
+// @desc    Delete an individual document from a QC Report
+// @route   DELETE /api/operations/projects/:id/qc-reports/:reportId/documents/:documentId
+export const deleteQCReportDocument = wrapAsync(
+  async (req, res) => {
+    const { id: projectId, reportId, documentId } = req.params;
+
+    if (
+      !mongoose.Types.ObjectId.isValid(projectId) ||
+      !mongoose.Types.ObjectId.isValid(reportId) ||
+      !mongoose.Types.ObjectId.isValid(documentId)
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid project, QC report or document ID.",
+      });
+    }
+
+    const updatedQCReport =
+      await operationService.deleteQCReportDocument(
+        projectId,
+        reportId,
+        documentId
+      );
+
+    if (!updatedQCReport) {
+      return res.status(404).json({
+        success: false,
+        message: "QC Report or document not found.",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "QC Report document deleted successfully.",
+      data: updatedQCReport,
+    });
+  }
+);
+
+// @desc    Delete a QC Report and its associated documents
+// @route   DELETE /api/operations/projects/:id/qc-reports/:reportId
+export const removeQCReport = wrapAsync(
+  async (req, res) => {
+    const { id: projectId, reportId } = req.params;
+
+    if (
+      !mongoose.Types.ObjectId.isValid(projectId) ||
+      !mongoose.Types.ObjectId.isValid(reportId)
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid project or QC report ID.",
+      });
+    }
+
+    const deletedQCReport = await operationService.deleteQCReport(
+      projectId,
+      reportId
+    );
+
+    if (!deletedQCReport) {
+      return res.status(404).json({
+        success: false,
+        message: "QC Report not found.",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "QC Report and its associated documents deleted successfully.",
+      data: deletedQCReport,
+    });
+  }
+);
