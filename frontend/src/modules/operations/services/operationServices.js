@@ -218,3 +218,19 @@ export const deleteQCReportDocument = async (
 
   return response.data.data;
 };
+
+
+export const getSalesDocumentUrl = async (
+  projectId,
+  documentId,
+  disposition = "inline"
+) => {
+  const response = await operationsApi.get(
+    `/projects/${projectId}/sales-documents/${documentId}/url`,
+    {
+      params: { disposition },
+    }
+  );
+
+  return response.data.data.url;
+};

@@ -1,21 +1,81 @@
+
 import Project from "../../../models/Project.js";
-import { getDownloadUrl, getViewUrl, uploadFilesToTigris ,deleteFileFromTigris} from "../../../utils/tigrisHelper.js";
+import {
+  getDownloadUrl,
+  getViewUrl,
+  uploadFilesToTigris,
+  deleteFileFromTigris,
+} from "../../../utils/tigrisHelper.js";
+
 import QualityControl from "../models/QualityControl.js";
 import ItemPurchase from "../models/ItemPurchase.js";
 import mongoose from "mongoose";
 
+// --------------------------------------------------
+// PROJECT DOCUMENT HELPERS
+// --------------------------------------------------
+
+// Add uploaded document metadata to the Project-level vault.
+// Add uploaded document metadata to the Project-level vault.
+const addDocumentsToProject = async (
+  projectId,
+  field,
+  documents
+) => {
+  if (!documents?.length) return;
+
+  await Project.updateOne(
+    { _id: projectId },
+    {
+      $push: {
+        [`operationsData.${field}`]: {
+          $each: documents,
+        },
+      },
+    }
+  );
+};
+
+// Remove Project-level metadata using Tigris object keys.
+const removeDocumentsFromProject = async (
+  projectId,
+  field,
+  documents
+) => {
+  const keys = (documents || [])
+    .map((doc) => doc.key)
+    .filter(Boolean);
+
+  if (!keys.length) return;
+
+  await Project.updateOne(
+    { _id: projectId },
+    {
+      $pull: {
+        [`operationsData.${field}`]: {
+          key: { $in: keys },
+        },
+      },
+    }
+  );
+};
+
+// --------------------------------------------------
+// PROJECT FETCHING
+// --------------------------------------------------
+
 /**
  * Fetches all active projects for Operations Dashboards.
  */
+export const fetchActiveProjects = async () => {
+  const projects = await Project.find({ status: "ACTIVE" })
+    .populate("client", "clientName")
+    .populate("tender", "tenderTitle")
+    .select("-salesData.contractValue");
 
-export const fetchActiveProjects = async()=>{
-    const projects = await Project.find({status : 'ACTIVE'})
-        .populate("client","clientName")
-        .populate("tender","tenderTitle")
-        .select("-salesData.contractValue");
+  return projects;
+};
 
-    return projects;
-}
 
 /**
  * Fetches a single project workspace (Vault) by its ID.
@@ -24,26 +84,47 @@ export const fetchProjectVault = async (projectId) => {
   const project = await Project.findById(projectId)
     .populate("client", "clientName contactPerson")
     .populate("tender", "tenderTitle tenderRef")
-    .populate("qualityRecords") // Populates the virtual we defined
-    .populate("purchaseItems"); // Populates the virtual we defined
-    
+    .populate("qualityRecords")
+    .populate("purchaseItems");
+
   return project;
 };
 
+
+// --------------------------------------------------
+// PURCHASE ORDER CREATION
+// --------------------------------------------------
+
 /**
- * Creates a new structured Purchase Order linked to a Project, including file uploads.
+ * Creates a new structured Purchase Order linked to a Project,
+ * including file uploads.
  */
+export const createPurchaseOrder = async (
+  projectId,
+  formData,
+  files,
+  userId
+) => {
+  const {
+    materialName,
+    vendorName,
+    quantity,
+    uom,
+    unitRate,
+  } = formData;
 
-export const createPurchaseOrder = async(projectId, formData, files, userId)=>{
-  const { materialName, vendorName, quantity, uom, unitRate } = formData;
-
-  // 1. Calculate the total cost securely on the backend
+  // Calculate total cost securely on the backend.
   const totalCost = Number(quantity) * Number(unitRate);
-  // 2. Upload files to Tigris (if any exist in the req.files array)
-  const folderPath = `projects/${projectId}/purchaseOrders`;
-  const uploadedDocuments = await uploadFilesToTigris(files, folderPath);
 
-  // 3. Create the new ItemPurchase document
+  // Upload files to Tigris.
+  const folderPath = `projects/${projectId}/purchaseOrders`;
+
+  const uploadedDocuments = await uploadFilesToTigris(
+    files,
+    folderPath
+  );
+
+  // Create the new ItemPurchase document.
   const newPO = new ItemPurchase({
     project: projectId,
     materialName,
@@ -54,13 +135,25 @@ export const createPurchaseOrder = async(projectId, formData, files, userId)=>{
     totalCost,
     status: "PO_ISSUED",
     createdBy: userId,
-    documents: uploadedDocuments
-  })
+    documents: uploadedDocuments,
+  });
 
   await newPO.save();
-  return newPO;
-}
 
+  // Add uploaded documents to Project-level Purchase Documents.
+  await addDocumentsToProject(
+    projectId,
+    "purchaseDocuments",
+    uploadedDocuments
+  );
+
+  return newPO;
+};
+
+
+// --------------------------------------------------
+// PURCHASE ORDER DOCUMENT DELETION
+// --------------------------------------------------
 
 /**
  * Delete a specific document from a Purchase Order.
@@ -75,7 +168,9 @@ export const deletePurchaseOrderDocument = async (
     !mongoose.Types.ObjectId.isValid(poId) ||
     !mongoose.Types.ObjectId.isValid(documentId)
   ) {
-    throw new Error("Invalid project, purchase order, or document ID.");
+    throw new Error(
+      "Invalid project, purchase order, or document ID."
+    );
   }
 
   const purchaseOrder = await ItemPurchase.findOne({
@@ -93,16 +188,24 @@ export const deletePurchaseOrderDocument = async (
     return null;
   }
 
-  // Delete the actual file from Tigris first
+  // Delete the actual file from Tigris first.
   await deleteFileFromTigris(document.key);
 
-  // Remove the attachment metadata from MongoDB
+  // Remove the attachment metadata from the Purchase Order.
   purchaseOrder.documents.pull({ _id: documentId });
 
   await purchaseOrder.save();
 
+  // Remove the same document from Project-level Purchase Documents.
+  await removeDocumentsFromProject(
+    projectId,
+    "purchaseDocuments",
+    [document]
+  );
+
   return purchaseOrder;
 };
+
 
 /**
  * Delete a Purchase Order and all its associated documents.
@@ -124,29 +227,43 @@ export const deletePurchaseOrder = async (projectId, poId) => {
     return null;
   }
 
-  // Delete all associated files from Tigris
+  // Delete all associated files from Tigris.
   for (const document of purchaseOrder.documents) {
-    await deleteFileFromTigris(document.key);
+    if (document.key) {
+      await deleteFileFromTigris(document.key);
+    }
   }
 
-  // Delete the Purchase Order from MongoDB
+  // Delete the Purchase Order from MongoDB.
   await ItemPurchase.deleteOne({
     _id: poId,
     project: projectId,
   });
 
+  // Remove all its documents from Project-level Purchase Documents.
+  await removeDocumentsFromProject(
+    projectId,
+    "purchaseDocuments",
+    purchaseOrder.documents
+  );
+
   return purchaseOrder;
 };
 
 
-// Generate a View or Download URL for a purchase order document
+// --------------------------------------------------
+// PURCHASE ORDER DOCUMENT URL
+// --------------------------------------------------
+
+/**
+ * Generate a View or Download URL for a Purchase Order document.
+ */
 export const fetchPurchaseOrderDocumentUrl = async (
   projectId,
   purchaseOrderId,
   documentId,
   disposition = "attachment"
 ) => {
-  // Find the PO belonging to this project
   const purchaseOrder = await ItemPurchase.findOne({
     _id: purchaseOrderId,
     project: projectId,
@@ -156,43 +273,54 @@ export const fetchPurchaseOrderDocumentUrl = async (
     return null;
   }
 
-  // Find the requested document inside the PO
   const document = purchaseOrder.documents.id(documentId);
 
   if (!document) {
     return null;
   }
 
-  // Generate the appropriate signed URL
   if (disposition === "inline") {
-    return getViewUrl(document.key, document.originalName);
+    return getViewUrl(
+      document.key,
+      document.originalName
+    );
   }
 
-  return getDownloadUrl(document.key, document.originalName);
+  return getDownloadUrl(
+    document.key,
+    document.originalName
+  );
 };
 
-//Create a Quality Control report
-export const createQCReport = async({
+
+// --------------------------------------------------
+// QC REPORT CREATION
+// --------------------------------------------------
+
+/**
+ * Create a Quality Control Report.
+ */
+export const createQCReport = async ({
   projectId,
   vendorName,
   title,
   description,
   customFields,
   files,
-  createdBy
-})=>{
-    // Validate project ID.
+}) => {
+  // Validate project ID.
   if (!mongoose.Types.ObjectId.isValid(projectId)) {
     throw new Error("Invalid project ID.");
   }
+
   // Ensure the project exists.
   const project = await Project.findById(projectId);
 
-  if(!project){
+  if (!project) {
     throw new Error("Project not found");
   }
 
-    // Upload supporting documents to Tigris.
+  // Upload supporting documents to Tigris.
   const uploadedDocuments = files?.length
     ? await uploadFilesToTigris(
         files,
@@ -200,7 +328,7 @@ export const createQCReport = async({
       )
     : [];
 
-    // Create QC report.
+  // Create QC report.
   const qcReport = await QualityControl.create({
     project: projectId,
     vendorName: vendorName?.trim() || "",
@@ -208,23 +336,32 @@ export const createQCReport = async({
     description: description.trim(),
     customFields: customFields || [],
     docs: uploadedDocuments,
-    createdBy,
   });
 
-    return qcReport;
+  // Add uploaded documents to Project-level QC Documents.
+  await addDocumentsToProject(
+    projectId,
+    "qcDocuments",
+    uploadedDocuments
+  );
+
+  return qcReport;
+};
 
 
-}
+// --------------------------------------------------
+// QC REPORT DOCUMENT URL
+// --------------------------------------------------
 
-
-// Generate a View or Download URL for a QC report document
+/**
+ * Generate a View or Download URL for a QC report document.
+ */
 export const fetchQCReportDocumentUrl = async (
   projectId,
   reportId,
   documentId,
   disposition = "attachment"
 ) => {
-  // Find the QC report belonging to this project
   const report = await QualityControl.findOne({
     _id: reportId,
     project: projectId,
@@ -234,34 +371,29 @@ export const fetchQCReportDocumentUrl = async (
     return null;
   }
 
-  // Find the requested document inside the QC report
   const document = report.docs.id(documentId);
 
   if (!document) {
     return null;
   }
 
-  // Generate the appropriate signed Tigris URL
   if (disposition === "inline") {
-    return getViewUrl(document.key, document.originalName);
+    return getViewUrl(
+      document.key,
+      document.originalName
+    );
   }
 
-  return getDownloadUrl(document.key, document.originalName);
+  return getDownloadUrl(
+    document.key,
+    document.originalName
+  );
 };
 
-/**
- * (Pending) Adds independent documents to the QC Vault array
- */
-export const addQCDocumentToProject = async (projectId, files) => {
-  // Logic to upload to Tigris and $push to operationsData.qcDocuments
-};
 
-/**
- * (Pending) Adds independent documents to the Purchase Vault array
- */
-export const addPurchaseDocumentToProject = async (projectId, files) => {
-  // Logic to upload to Tigris and $push to operationsData.purchaseDocuments
-};
+// --------------------------------------------------
+// FETCH PURCHASE ORDER
+// --------------------------------------------------
 
 /**
  * Fetch a specific Purchase Order belonging to a project.
@@ -274,6 +406,11 @@ export const fetchPurchaseOrder = async (projectId, poId) => {
 
   return purchaseOrder;
 };
+
+
+// --------------------------------------------------
+// UPDATE PURCHASE ORDER
+// --------------------------------------------------
 
 /**
  * Update an existing Purchase Order.
@@ -317,24 +454,32 @@ export const updatePurchaseOrder = async (
     throw new Error("Invalid Purchase Order details.");
   }
 
-  // Update Purchase Order fields
+  // Update Purchase Order fields.
   purchaseOrder.materialName = materialName.trim();
   purchaseOrder.vendorName = vendorName.trim();
   purchaseOrder.quantity = parsedQuantity;
   purchaseOrder.uom = uom.trim();
   purchaseOrder.unitRate = parsedUnitRate;
 
-  // Recalculate total cost on the backend
-  purchaseOrder.totalCost = parsedQuantity * parsedUnitRate;
+  // Recalculate total cost on the backend.
+  purchaseOrder.totalCost =
+    parsedQuantity * parsedUnitRate;
 
-  // Upload and append new documents, if provided
-  if (files.length > 0) {
+  // Upload and append new documents, if provided.
+  if (files?.length > 0) {
     const uploadedDocuments = await uploadFilesToTigris(
       files,
       `projects/${projectId}/purchaseOrders`
     );
 
     purchaseOrder.documents.push(...uploadedDocuments);
+
+    // Also add them to Project-level Purchase Documents.
+    await addDocumentsToProject(
+      projectId,
+      "purchaseDocuments",
+      uploadedDocuments
+    );
   }
 
   await purchaseOrder.save();
@@ -343,20 +488,9 @@ export const updatePurchaseOrder = async (
 };
 
 
-// // Forward this Specific PO of a Project to Finance Department
-// export const forwardPOToFinance = async (projectId, poId) => {
-//   const po = await ItemPurchase.findOne({ _id: poId, project: projectId });
-//   if (!po) return null;
-
-//   po.sentToFinance = true;
-//   if (!po.sentToFinanceAt) po.sentToFinanceAt = new Date();
-//   po.financeStatus = po.financeStatus || "DUE";
-//   po.status = "INVOICE_APPROVED";
-
-//   await po.save();
-//   return po;
-// };
-
+// --------------------------------------------------
+// FETCH QC REPORT
+// --------------------------------------------------
 
 /**
  * Fetch a specific QC Report belonging to a project.
@@ -377,6 +511,10 @@ export const fetchQCReport = async (projectId, reportId) => {
   return report;
 };
 
+
+// --------------------------------------------------
+// UPDATE QC REPORT
+// --------------------------------------------------
 
 /**
  * Update an existing QC Report.
@@ -400,7 +538,9 @@ export const updateQCReport = async (
     project: projectId,
   });
 
-  if (!report) return null;
+  if (!report) {
+    return null;
+  }
 
   const {
     vendorName,
@@ -410,7 +550,9 @@ export const updateQCReport = async (
   } = formData;
 
   if (!title?.trim() || !description?.trim()) {
-    throw new Error("QC Report title and description are required.");
+    throw new Error(
+      "QC Report title and description are required."
+    );
   }
 
   let parsedCustomFields = customFields || [];
@@ -442,7 +584,9 @@ export const updateQCReport = async (
       (field) => !field.name || !field.value
     )
   ) {
-    throw new Error("Every custom field must have a name and value.");
+    throw new Error(
+      "Every custom field must have a name and value."
+    );
   }
 
   // Upload and append newly selected documents.
@@ -453,6 +597,13 @@ export const updateQCReport = async (
     );
 
     report.docs.push(...uploadedDocuments);
+
+    // Also add them to Project-level QC Documents.
+    await addDocumentsToProject(
+      projectId,
+      "qcDocuments",
+      uploadedDocuments
+    );
   }
 
   await report.save();
@@ -460,6 +611,10 @@ export const updateQCReport = async (
   return report;
 };
 
+
+// --------------------------------------------------
+// DELETE QC REPORT
+// --------------------------------------------------
 
 /**
  * Delete an entire QC Report and all its Tigris documents.
@@ -477,7 +632,9 @@ export const deleteQCReport = async (projectId, reportId) => {
     project: projectId,
   });
 
-  if (!report) return null;
+  if (!report) {
+    return null;
+  }
 
   // Delete all associated documents from Tigris.
   for (const document of report.docs || []) {
@@ -488,9 +645,20 @@ export const deleteQCReport = async (projectId, reportId) => {
 
   await report.deleteOne();
 
+  // Remove all its documents from Project-level QC Documents.
+  await removeDocumentsFromProject(
+    projectId,
+    "qcDocuments",
+    report.docs
+  );
+
   return report;
 };
 
+
+// --------------------------------------------------
+// DELETE INDIVIDUAL QC DOCUMENT
+// --------------------------------------------------
 
 /**
  * Delete one document from a QC Report.
@@ -505,7 +673,9 @@ export const deleteQCReportDocument = async (
     !mongoose.Types.ObjectId.isValid(reportId) ||
     !mongoose.Types.ObjectId.isValid(documentId)
   ) {
-    throw new Error("Invalid project, report or document ID.");
+    throw new Error(
+      "Invalid project, report or document ID."
+    );
   }
 
   const report = await QualityControl.findOne({
@@ -513,20 +683,62 @@ export const deleteQCReportDocument = async (
     project: projectId,
   });
 
-  if (!report) return null;
+  if (!report) {
+    return null;
+  }
 
   const document = report.docs.id(documentId);
 
-  if (!document) return null;
+  if (!document) {
+    return null;
+  }
 
   // Delete the actual file using its stored Tigris key.
   if (document.key) {
     await deleteFileFromTigris(document.key);
   }
 
+  // Remove from QC Report.
   report.docs.pull(documentId);
 
   await report.save();
 
+  // Remove from Project-level QC Documents.
+  await removeDocumentsFromProject(
+    projectId,
+    "qcDocuments",
+    [document]
+  );
+
   return report;
+};
+
+
+export const getSalesDocumentUrl = async (
+  projectId,
+  documentId,
+  disposition = "inline"
+) => {
+  const project = await Project.findById(projectId);
+
+  if (!project) {
+    throw new Error("Project not found.");
+  }
+
+  const document = project.salesData?.documents?.id(documentId);
+
+  if (!document) {
+    throw new Error("Sales document not found.");
+  }
+
+  if (!document.key) {
+    throw new Error("Sales document key is missing.");
+  }
+
+  const url =
+    disposition === "attachment"
+      ? await getDownloadUrl(document.key, document.originalName)
+      : await getViewUrl(document.key, document.originalName);
+
+  return { url };
 };

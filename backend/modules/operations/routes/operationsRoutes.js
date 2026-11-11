@@ -25,6 +25,7 @@ import {
 
   // Other document controllers
   uploadPurchaseDocument,
+  getSalesDocumentUrl
 } from "../controllers/operationsController.js";
 
 const router = express.Router();
@@ -144,6 +145,11 @@ router.post(
   "/projects/:id/documents/purchase",
   upload.array("documents"),
   uploadPurchaseDocument
+);
+
+router.get(
+  "/projects/:projectId/sales-documents/:documentId/url",
+  getSalesDocumentUrl
 );
 
 // --------------------------------------------------
