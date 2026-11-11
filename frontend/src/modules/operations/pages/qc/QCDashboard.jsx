@@ -13,10 +13,12 @@ import {
   ClipboardCheck,
   Building2,
   ArrowRight,
+  MessageSquare,
 } from "lucide-react";
 
 import { fetchActiveProjects } from "../../services/operationServices";
 import QCProjectModal from "../../components/QCProjectModal";
+import OperationsChatModal from "../../components/OperationsChatModal.jsx";
 
 const StatCard = ({ title, value, icon: Icon, description }) => (
   <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5">
@@ -37,7 +39,7 @@ const StatCard = ({ title, value, icon: Icon, description }) => (
   </div>
 );
 
-const ProjectCard = ({ project, onOpen }) => (
+const ProjectCard = ({ project, onOpen, onChat }) => (
   <div className="group bg-zinc-900 border border-zinc-800 rounded-xl p-5 hover:border-emerald-500/40 transition">
     <div className="flex items-start justify-between gap-3">
       <div className="p-3 rounded-xl bg-emerald-500/10 text-emerald-400">
@@ -75,13 +77,28 @@ const ProjectCard = ({ project, onOpen }) => (
       </div>
     </div>
 
-    <button
-      onClick={onOpen}
-      className="mt-6 w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-zinc-950 text-sm font-semibold transition"
-    >
-      Open QC Workspace
-      <ArrowRight size={16} />
-    </button>
+    {/* Project Actions */}
+    <div className="mt-6 flex gap-3">
+      <button
+        type="button"
+        onClick={onOpen}
+        className="flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-zinc-950 text-sm font-semibold transition"
+      >
+        Open QC Workspace
+        <ArrowRight size={16} />
+      </button>
+
+      <button
+        type="button"
+        onClick={onChat}
+        disabled={!project.projectCode}
+        title="Open project chat"
+        className="shrink-0 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 text-sm font-medium transition disabled:opacity-40 disabled:cursor-not-allowed"
+      >
+        <MessageSquare size={17} />
+        Chat
+      </button>
+    </div>
   </div>
 );
 
@@ -95,6 +112,9 @@ export default function QCDashboard() {
 
   // Controls the QC project workspace modal.
   const [selectedProjectId, setSelectedProjectId] = useState(null);
+
+  // Controls the Operations project chat modal.
+  const [chatProject, setChatProject] = useState(null);
 
   const fetchProjects = useCallback(async () => {
     try {
@@ -305,6 +325,7 @@ export default function QCDashboard() {
                   key={project._id}
                   project={project}
                   onOpen={() => setSelectedProjectId(project._id)}
+                  onChat={() => setChatProject(project)}
                 />
               ))}
             </div>
@@ -317,6 +338,14 @@ export default function QCDashboard() {
         <QCProjectModal
           projectId={selectedProjectId}
           onClose={() => setSelectedProjectId(null)}
+        />
+      )}
+
+      {/* Operations Chat Modal */}
+      {chatProject && (
+        <OperationsChatModal
+          project={chatProject}
+          onClose={() => setChatProject(null)}
         />
       )}
     </div>

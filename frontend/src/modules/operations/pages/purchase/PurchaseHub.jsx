@@ -11,9 +11,11 @@ import {
   ArrowLeft,
   FileText,
   ArrowRight,
+  MessageSquare,
 } from "lucide-react";
 
 import ProjectDetailsModal from "../../components/ProjectDetailsModal.jsx";
+import OperationsChatModal from "../../components/OperationsChatModal.jsx";
 import { fetchActiveProjects } from "../../services/operationServices";
 
 function StatCard({ title, value, description, icon: Icon }) {
@@ -36,7 +38,7 @@ function StatCard({ title, value, description, icon: Icon }) {
   );
 }
 
-function ProjectCard({ project, onOpen }) {
+function ProjectCard({ project, onOpen, onChat }) {
   return (
     <div className="group rounded-xl border border-zinc-800 bg-zinc-900 p-5 transition hover:border-emerald-500/40 hover:bg-zinc-900/80">
       <div className="flex items-start justify-between gap-3">
@@ -71,17 +73,31 @@ function ProjectCard({ project, onOpen }) {
         </div>
       </div>
 
-      <button
-        onClick={() => onOpen(project)}
-        className="mt-6 flex w-full items-center justify-between rounded-lg border border-zinc-700 px-4 py-2.5 text-sm font-medium text-zinc-300 transition hover:border-emerald-500/40 hover:bg-emerald-500/5 hover:text-emerald-400"
-      >
-        Open Project Vault
+      <div className="mt-6 flex gap-3">
+        <button
+          type="button"
+          onClick={() => onOpen(project)}
+          className="flex min-w-0 flex-1 items-center justify-between rounded-lg border border-zinc-700 px-4 py-2.5 text-sm font-medium text-zinc-300 transition hover:border-emerald-500/40 hover:bg-emerald-500/5 hover:text-emerald-400"
+        >
+          <span>Project Vault</span>
 
-        <ArrowRight
-          size={16}
-          className="transition-transform group-hover:translate-x-1"
-        />
-      </button>
+          <ArrowRight
+            size={16}
+            className="shrink-0 transition-transform group-hover:translate-x-1"
+          />
+        </button>
+
+        <button
+          type="button"
+          onClick={() => onChat(project)}
+          disabled={!project.projectCode}
+          title="Open project chat"
+          className="flex shrink-0 items-center justify-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-2.5 text-sm font-medium text-emerald-400 transition hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          <MessageSquare size={17} />
+          Chat
+        </button>
+      </div>
     </div>
   );
 }
@@ -91,7 +107,9 @@ export default function PurchaseHub() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
+
   const [selectedProjectId, setSelectedProjectId] = useState(null);
+  const [chatProject, setChatProject] = useState(null);
 
   const navigate = useNavigate();
 
@@ -256,7 +274,7 @@ export default function PurchaseHub() {
             />
           </div>
 
-          {/* Loading */}
+          {/* Loading / Error / Projects */}
           {loading ? (
             <div className="flex flex-col items-center justify-center rounded-xl border border-zinc-800 bg-zinc-900/50 py-20">
               <Loader2
@@ -310,6 +328,9 @@ export default function PurchaseHub() {
                   onOpen={(selectedProject) =>
                     setSelectedProjectId(selectedProject._id)
                   }
+                  onChat={(selectedProject) =>
+                    setChatProject(selectedProject)
+                  }
                 />
               ))}
             </div>
@@ -321,6 +342,14 @@ export default function PurchaseHub() {
           <ProjectDetailsModal
             projectId={selectedProjectId}
             onClose={() => setSelectedProjectId(null)}
+          />
+        )}
+
+        {/* Operations Chat Modal */}
+        {chatProject && (
+          <OperationsChatModal
+            project={chatProject}
+            onClose={() => setChatProject(null)}
           />
         )}
 

@@ -23,8 +23,9 @@ import {
   AlertTriangle,
   CheckCircle2,
   XCircle,
-  AlertCircle,
   FileWarning,
+  CalendarDays,
+  Files,
 } from "lucide-react";
 
 import {
@@ -32,6 +33,7 @@ import {
   deletePurchaseOrder,
   deletePurchaseOrderDocument,
   getPurchaseOrderDocumentUrl,
+  getSalesDocumentUrl,
 } from "../services/operationServices.js";
 
 // --------------------------------------------------
@@ -66,14 +68,130 @@ function Detail({ label, value }) {
 function Section({ title, icon: Icon, children }) {
   return (
     <section className="space-y-4">
-      <div className="flex items-center gap-2 border-b border-zinc-800 pb-3">
-        <Icon size={19} className="text-emerald-400" />
+      <div className="flex items-center gap-3 border-b border-zinc-800 pb-3">
+        <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-2">
+          <Icon size={17} className="text-emerald-400" />
+        </div>
+
         <h3 className="font-semibold text-white">{title}</h3>
       </div>
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         {children}
       </div>
+    </section>
+  );
+}
+
+// --------------------------------------------------
+// Document List Component
+// --------------------------------------------------
+
+function DocumentList({
+  title,
+  documents = [],
+  onView,
+  onDownload,
+  openingDocumentId,
+}) {
+  const hasActions = Boolean(onView || onDownload);
+
+  return (
+    <section className="space-y-3">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Files size={16} className="text-zinc-500" />
+
+          <h4 className="text-sm font-semibold text-zinc-200">
+            {title}
+          </h4>
+        </div>
+
+        <span className="rounded-full border border-zinc-800 bg-zinc-900 px-2.5 py-1 text-xs text-zinc-400">
+          {documents.length} files
+        </span>
+      </div>
+
+      {documents.length === 0 ? (
+        <div className="rounded-xl border border-dashed border-zinc-800 bg-zinc-900/30 p-5 text-center">
+          <FileText size={22} className="mx-auto mb-2 text-zinc-600" />
+
+          <p className="text-sm text-zinc-500">
+            No documents uploaded.
+          </p>
+        </div>
+      ) : (
+        <div className="overflow-hidden rounded-xl border border-zinc-800">
+          {documents.map((doc, index) => {
+            const isOpening = openingDocumentId === doc._id;
+
+            return (
+              <div
+                key={doc._id || doc.key || index}
+                className={`flex flex-col gap-3 bg-zinc-900/60 p-3 sm:flex-row sm:items-center sm:justify-between ${
+                  index !== documents.length - 1
+                    ? "border-b border-zinc-800"
+                    : ""
+                }`}
+              >
+                <div className="flex min-w-0 items-center gap-3">
+                  <div className="shrink-0 rounded-lg border border-blue-500/20 bg-blue-500/10 p-2.5">
+                    <FileText size={18} className="text-blue-400" />
+                  </div>
+
+                  <div className="min-w-0">
+                    <p className="break-all text-sm font-medium text-zinc-200">
+                      {doc.originalName || "Untitled document"}
+                    </p>
+
+                    <p className="mt-1 text-xs text-zinc-500">
+                      {doc.mimeType || "Unknown type"}
+                      {" · "}
+                      {formatFileSize(doc.size)}
+                    </p>
+                  </div>
+                </div>
+
+                {hasActions && (
+                  <div className="flex shrink-0 items-center gap-2 sm:justify-end">
+                    {onView && (
+                      <button
+                        type="button"
+                        onClick={() => onView(doc)}
+                        disabled={isOpening}
+                        className="flex items-center gap-1.5 rounded-lg border border-zinc-700 px-3 py-2 text-xs font-medium text-emerald-400 transition hover:border-emerald-500/40 hover:bg-emerald-500/10 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        {isOpening ? (
+                          <Loader2 size={14} className="animate-spin" />
+                        ) : (
+                          <Eye size={14} />
+                        )}
+                        View
+                      </button>
+                    )}
+
+                    {onDownload && (
+                      <button
+                        type="button"
+                        onClick={() => onDownload(doc)}
+                        disabled={isOpening}
+                        className="flex items-center gap-1.5 rounded-lg border border-zinc-700 px-3 py-2 text-xs font-medium text-blue-400 transition hover:border-blue-500/40 hover:bg-blue-500/10 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        {isOpening ? (
+                          <Loader2 size={14} className="animate-spin" />
+                        ) : (
+                          <Download size={14} />
+                        )}
+                        Download
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
     </section>
   );
 }
@@ -106,14 +224,12 @@ function Toast({ notification, onClose }) {
       icon: CheckCircle2,
       iconColor: "text-emerald-400",
       border: "border-emerald-500/30",
-      background: "bg-zinc-900",
       title: "Success",
     },
     error: {
       icon: XCircle,
       iconColor: "text-red-400",
       border: "border-red-500/30",
-      background: "bg-zinc-900",
       title: "Something went wrong",
     },
   };
@@ -124,7 +240,7 @@ function Toast({ notification, onClose }) {
   return (
     <div className="fixed right-5 top-5 z-[100] w-[calc(100%-40px)] max-w-sm animate-[toastIn_0.3s_ease-out]">
       <div
-        className={`flex items-start gap-3 rounded-xl border ${config.border} ${config.background} p-4 shadow-2xl shadow-black/40`}
+        className={`flex items-start gap-3 rounded-xl border ${config.border} bg-zinc-900 p-4 shadow-2xl shadow-black/40`}
       >
         <div className={`mt-0.5 shrink-0 ${config.iconColor}`}>
           <Icon size={22} />
@@ -176,7 +292,6 @@ function DeleteConfirmationModal({
         className="w-full max-w-md overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-950 shadow-2xl shadow-black/50 animate-[modalIn_0.2s_ease-out]"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
         <div className="border-b border-zinc-800 px-5 py-4">
           <div className="flex items-center gap-3">
             <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-2.5">
@@ -195,7 +310,6 @@ function DeleteConfirmationModal({
           </div>
         </div>
 
-        {/* Content */}
         <div className="space-y-4 p-5">
           <p className="text-sm leading-relaxed text-zinc-300">
             {isPO
@@ -228,7 +342,6 @@ function DeleteConfirmationModal({
           </p>
         </div>
 
-        {/* Footer */}
         <div className="flex flex-col-reverse gap-2 border-t border-zinc-800 bg-zinc-900/50 p-4 sm:flex-row sm:justify-end">
           <button
             type="button"
@@ -278,10 +391,15 @@ export default function ProjectDetailsModal({ projectId, onClose }) {
   const [deletingPOId, setDeletingPOId] = useState(null);
   const [deletingDocumentId, setDeletingDocumentId] = useState(null);
 
+  const [openingSalesDocumentId, setOpeningSalesDocumentId] = useState(null);
+
   const [confirmation, setConfirmation] = useState(null);
   const [notification, setNotification] = useState(null);
 
-  // Fetch project details
+  // --------------------------------------------------
+  // Fetch Project Details
+  // --------------------------------------------------
+
   useEffect(() => {
     const loadProjectDetails = async () => {
       try {
@@ -308,7 +426,10 @@ export default function ProjectDetailsModal({ projectId, onClose }) {
     }
   }, [projectId]);
 
-  // Auto-dismiss toast notifications
+  // --------------------------------------------------
+  // Auto-dismiss Toast Notifications
+  // --------------------------------------------------
+
   useEffect(() => {
     if (!notification) return;
 
@@ -331,6 +452,10 @@ export default function ProjectDetailsModal({ projectId, onClose }) {
     });
   };
 
+  // --------------------------------------------------
+  // Navigation
+  // --------------------------------------------------
+
   const handleCreatePO = () => {
     onClose();
 
@@ -347,7 +472,87 @@ export default function ProjectDetailsModal({ projectId, onClose }) {
     );
   };
 
-  // Generate document URLs
+  // --------------------------------------------------
+  // Sales Document View / Download
+  // --------------------------------------------------
+
+  const handleSalesDocumentAction = async (doc, disposition) => {
+    if (!doc?._id) {
+      showToast("error", "Sales document ID is missing.");
+      return;
+    }
+
+    let newWindow = null;
+
+    try {
+      setOpeningSalesDocumentId(doc._id);
+
+      // Open a blank tab synchronously to avoid popup blocking.
+      if (disposition === "inline") {
+        newWindow = window.open("about:blank", "_blank");
+
+        if (!newWindow) {
+          showToast(
+            "error",
+            "Your browser blocked the new tab. Please allow pop-ups and try again."
+          );
+          return;
+        }
+      }
+
+      const url = await getSalesDocumentUrl(
+        projectId,
+        doc._id,
+        disposition
+      );
+
+      if (!url) {
+        throw new Error("Could not generate the document URL.");
+      }
+
+      if (disposition === "inline") {
+        newWindow.location.href = url;
+      } else {
+        // The backend sets Content-Disposition to attachment.
+        // This triggers the browser download using the original filename.
+        const link = document.createElement("a");
+        link.href = url;
+        link.style.display = "none";
+
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+      }
+    } catch (err) {
+      console.error("Sales document action failed:", err);
+
+      if (newWindow && !newWindow.closed) {
+        newWindow.close();
+      }
+
+      showToast(
+        "error",
+        err.response?.data?.message ||
+          err.message ||
+          "Unable to open the sales document."
+      );
+    } finally {
+      setOpeningSalesDocumentId(null);
+    }
+  };
+
+  const handleViewSalesDocument = (doc) => {
+    handleSalesDocumentAction(doc, "inline");
+  };
+
+  const handleDownloadSalesDocument = (doc) => {
+    handleSalesDocumentAction(doc, "attachment");
+  };
+
+  // --------------------------------------------------
+  // Purchase Order Document URLs
+  // --------------------------------------------------
+
   const getDocumentUrl = (poId, documentId, disposition) => {
     return getPurchaseOrderDocumentUrl(
       projectId,
@@ -357,7 +562,10 @@ export default function ProjectDetailsModal({ projectId, onClose }) {
     );
   };
 
-  // Open confirmation for PO deletion
+  // --------------------------------------------------
+  // Delete Actions
+  // --------------------------------------------------
+
   const requestDeletePO = (po) => {
     setConfirmation({
       type: "purchaseOrder",
@@ -366,7 +574,6 @@ export default function ProjectDetailsModal({ projectId, onClose }) {
     });
   };
 
-  // Open confirmation for document deletion
   const requestDeleteDocument = (poId, doc) => {
     setConfirmation({
       type: "document",
@@ -376,7 +583,6 @@ export default function ProjectDetailsModal({ projectId, onClose }) {
     });
   };
 
-  // Execute confirmed deletion
   const handleConfirmDelete = async () => {
     if (!confirmation) return;
 
@@ -454,15 +660,17 @@ export default function ProjectDetailsModal({ projectId, onClose }) {
   const isDeleting =
     deletingPOId !== null || deletingDocumentId !== null;
 
+  // --------------------------------------------------
+  // Render
+  // --------------------------------------------------
+
   return (
     <>
-      {/* Toast Notification */}
       <Toast
         notification={notification}
         onClose={() => setNotification(null)}
       />
 
-      {/* Delete Confirmation */}
       <DeleteConfirmationModal
         confirmation={confirmation}
         onCancel={() => {
@@ -472,9 +680,8 @@ export default function ProjectDetailsModal({ projectId, onClose }) {
         deleting={isDeleting}
       />
 
-      {/* Main Project Modal */}
       <div
-        className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-3 sm:p-6"
+        className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-3 backdrop-blur-sm sm:p-6"
         onClick={onClose}
       >
         <div
@@ -482,9 +689,9 @@ export default function ProjectDetailsModal({ projectId, onClose }) {
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          <div className="flex items-center justify-between border-b border-zinc-800 px-5 py-4 sm:px-6">
+          <div className="flex items-center justify-between border-b border-zinc-800 bg-zinc-950 px-5 py-4 sm:px-6">
             <div className="flex items-center gap-3">
-              <div className="rounded-xl bg-emerald-500/10 p-2.5">
+              <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-2.5">
                 <FolderKanban className="text-emerald-400" size={22} />
               </div>
 
@@ -500,8 +707,10 @@ export default function ProjectDetailsModal({ projectId, onClose }) {
             </div>
 
             <button
+              type="button"
               onClick={onClose}
               className="rounded-lg p-2 text-zinc-400 transition hover:bg-zinc-800 hover:text-white"
+              aria-label="Close project overview"
             >
               <X size={21} />
             </button>
@@ -518,11 +727,14 @@ export default function ProjectDetailsModal({ projectId, onClose }) {
                 Loading project information...
               </div>
             ) : error ? (
-              <div className="py-16 text-center text-red-400">{error}</div>
+              <div className="rounded-xl border border-red-500/20 bg-red-500/5 py-12 text-center text-sm text-red-400">
+                {error}
+              </div>
             ) : project ? (
               <div className="space-y-8">
+
                 {/* Project Heading */}
-                <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-5">
+                <div className="rounded-xl border border-emerald-500/20 bg-gradient-to-br from-emerald-500/10 to-zinc-900/40 p-5">
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
                       <p className="mb-1 text-xs font-medium uppercase tracking-wider text-emerald-400">
@@ -534,18 +746,36 @@ export default function ProjectDetailsModal({ projectId, onClose }) {
                       </h3>
                     </div>
 
-                    <span className="rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-400">
+                    <span className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-400">
                       {project.status || "UNKNOWN"}
                     </span>
                   </div>
                 </div>
 
                 {/* Basic Project Information */}
-                <Section title="Basic Project Information" icon={FolderKanban}>
-                  <Detail label="Project Name" value={project.projectName} />
-                  <Detail label="Project Code" value={project.projectCode} />
-                  <Detail label="Project ID" value={project._id} />
-                  <Detail label="Status" value={project.status} />
+                <Section
+                  title="Basic Project Information"
+                  icon={FolderKanban}
+                >
+                  <Detail
+                    label="Project Name"
+                    value={project.projectName}
+                  />
+
+                  <Detail
+                    label="Project Code"
+                    value={project.projectCode}
+                  />
+
+                  <Detail
+                    label="Project ID"
+                    value={project._id}
+                  />
+
+                  <Detail
+                    label="Status"
+                    value={project.status}
+                  />
 
                   <Detail
                     label="Created At"
@@ -564,8 +794,9 @@ export default function ProjectDetailsModal({ projectId, onClose }) {
                         : null
                     }
                   />
-
                 </Section>
+
+                <div className="border-t border-zinc-800" />
 
                 {/* Client Information */}
                 <Section title="Client Information" icon={Building2}>
@@ -585,6 +816,8 @@ export default function ProjectDetailsModal({ projectId, onClose }) {
                   />
                 </Section>
 
+                <div className="border-t border-zinc-800" />
+
                 {/* Tender Information */}
                 <Section title="Tender Information" icon={FileText}>
                   <Detail
@@ -603,18 +836,28 @@ export default function ProjectDetailsModal({ projectId, onClose }) {
                   />
                 </Section>
 
+                <div className="border-t border-zinc-800" />
+
                 {/* Sales Information */}
                 <Section title="Sales Information" icon={ClipboardList}>
                   <Detail
                     label="PO Description"
                     value={project.salesData?.poDescription}
                   />
-
-                  <Detail
-                    label="Sales Documents"
-                    value={project.salesData?.documents?.length ?? 0}
-                  />
                 </Section>
+
+                {/* Sales Documents with View and Download */}
+                <div className="rounded-xl border border-zinc-800 bg-zinc-900/20 p-4 sm:p-5">
+                  <DocumentList
+                    title="Sales Documents"
+                    documents={project.salesData?.documents || []}
+                    onView={handleViewSalesDocument}
+                    onDownload={handleDownloadSalesDocument}
+                    openingDocumentId={openingSalesDocumentId}
+                  />
+                </div>
+
+                <div className="border-t border-zinc-800" />
 
                 {/* Operations Information */}
                 <Section title="Operations Information" icon={ShoppingCart}>
@@ -641,16 +884,21 @@ export default function ProjectDetailsModal({ projectId, onClose }) {
                   />
                 </Section>
 
-                {/* See Purchase Orders */}
+                {/* Purchase Orders */}
+                <div className="border-t border-zinc-800" />
+
                 <section className="space-y-4">
                   <button
+                    type="button"
                     onClick={() =>
                       setShowPurchaseOrders((prev) => !prev)
                     }
-                    className="flex w-full items-center justify-between rounded-xl border border-zinc-800 bg-zinc-900 p-4 transition hover:bg-zinc-800"
+                    className="flex w-full items-center justify-between rounded-xl border border-zinc-800 bg-zinc-900/70 p-4 transition hover:border-emerald-500/30 hover:bg-zinc-900"
                   >
                     <div className="flex items-center gap-3">
-                      <Package size={21} className="text-emerald-400" />
+                      <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-2">
+                        <Package size={19} className="text-emerald-400" />
+                      </div>
 
                       <div className="text-left">
                         <h3 className="font-semibold text-white">
@@ -665,7 +913,7 @@ export default function ProjectDetailsModal({ projectId, onClose }) {
 
                     <ChevronDown
                       size={20}
-                      className={`text-zinc-400 transition-transform ${
+                      className={`text-zinc-400 transition-transform duration-200 ${
                         showPurchaseOrders ? "rotate-180" : ""
                       }`}
                     />
@@ -674,23 +922,39 @@ export default function ProjectDetailsModal({ projectId, onClose }) {
                   {showPurchaseOrders && (
                     <div className="space-y-4">
                       {purchaseOrders.length === 0 ? (
-                        <p className="py-6 text-center text-sm text-zinc-500">
-                          No purchase orders found for this project.
-                        </p>
+                        <div className="rounded-xl border border-dashed border-zinc-800 bg-zinc-900/30 py-8 text-center">
+                          <Package
+                            size={24}
+                            className="mx-auto mb-2 text-zinc-600"
+                          />
+
+                          <p className="text-sm text-zinc-500">
+                            No purchase orders found for this project.
+                          </p>
+                        </div>
                       ) : (
                         purchaseOrders.map((po, index) => (
                           <div
                             key={po._id}
-                            className="space-y-4 rounded-xl border border-zinc-800 bg-zinc-900/70 p-4"
+                            className="overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900/50"
                           >
                             {/* PO Header */}
-                            <div className="flex flex-wrap items-center justify-between gap-3">
+                            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-800 bg-zinc-900/70 p-4">
                               <div>
-                                <h4 className="font-semibold text-white">
-                                  Purchase Order #{index + 1}
-                                </h4>
+                                <div className="flex items-center gap-2">
+                                  <Package
+                                    size={16}
+                                    className="text-emerald-400"
+                                  />
 
-                                <p className="mt-1 text-xs text-zinc-500">
+                                  <h4 className="font-semibold text-white">
+                                    Purchase Order #{index + 1}
+                                  </h4>
+                                </div>
+
+                                <p className="mt-1 flex items-center gap-1.5 text-xs text-zinc-500">
+                                  <CalendarDays size={12} />
+
                                   {po.createdAt
                                     ? new Date(
                                         po.createdAt
@@ -700,11 +964,10 @@ export default function ProjectDetailsModal({ projectId, onClose }) {
                               </div>
 
                               <div className="flex flex-wrap items-center gap-2">
-                                <span className="rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-400">
+                                <span className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-400">
                                   {po.status?.replaceAll("_", " ") || "UNKNOWN"}
                                 </span>
 
-                                {/* Edit */}
                                 <button
                                   type="button"
                                   onClick={() => handleEditPO(po._id)}
@@ -714,7 +977,6 @@ export default function ProjectDetailsModal({ projectId, onClose }) {
                                   Edit
                                 </button>
 
-                                {/* Delete */}
                                 <button
                                   type="button"
                                   onClick={() => requestDeletePO(po)}
@@ -728,57 +990,84 @@ export default function ProjectDetailsModal({ projectId, onClose }) {
                             </div>
 
                             {/* PO Details */}
-                            <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
+                            <div className="grid grid-cols-1 gap-4 p-4 text-sm sm:grid-cols-2">
                               <div>
-                                <p className="text-zinc-500">Material</p>
+                                <p className="mb-1 text-xs font-medium uppercase tracking-wide text-zinc-500">
+                                  Material
+                                </p>
+
                                 <p className="text-zinc-200">
                                   {po.materialName || "N/A"}
                                 </p>
                               </div>
 
                               <div>
-                                <p className="text-zinc-500">Vendor</p>
+                                <p className="mb-1 text-xs font-medium uppercase tracking-wide text-zinc-500">
+                                  Vendor
+                                </p>
+
                                 <p className="text-zinc-200">
                                   {po.vendorName || "N/A"}
                                 </p>
                               </div>
 
                               <div>
-                                <p className="text-zinc-500">Quantity</p>
+                                <p className="mb-1 text-xs font-medium uppercase tracking-wide text-zinc-500">
+                                  Quantity
+                                </p>
+
                                 <p className="text-zinc-200">
                                   {po.quantity ?? "N/A"} {po.uom || ""}
                                 </p>
                               </div>
 
                               <div>
-                                <p className="text-zinc-500">Unit Rate</p>
+                                <p className="mb-1 text-xs font-medium uppercase tracking-wide text-zinc-500">
+                                  Unit Rate
+                                </p>
+
                                 <p className="text-zinc-200">
                                   {formatCurrency(po.unitRate)}
                                 </p>
                               </div>
 
-                              <div>
-                                <p className="text-zinc-500">Total Cost</p>
-                                <p className="font-semibold text-emerald-400">
+                              <div className="sm:col-span-2">
+                                <p className="mb-1 text-xs font-medium uppercase tracking-wide text-zinc-500">
+                                  Total Cost
+                                </p>
+
+                                <p className="text-base font-semibold text-emerald-400">
                                   {formatCurrency(po.totalCost)}
                                 </p>
                               </div>
                             </div>
 
                             {/* Supporting Documents */}
-                            <div className="border-t border-zinc-800 pt-4">
-                              <p className="mb-3 text-sm font-medium text-zinc-300">
-                                Supporting Documents (
-                                {po.documents?.length || 0})
-                              </p>
+                            <div className="border-t border-zinc-800 p-4">
+                              <div className="mb-3 flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                  <Files
+                                    size={15}
+                                    className="text-zinc-500"
+                                  />
+
+                                  <p className="text-sm font-medium text-zinc-300">
+                                    Supporting Documents
+                                  </p>
+                                </div>
+
+                                <span className="rounded-full bg-zinc-800 px-2 py-0.5 text-xs text-zinc-400">
+                                  {po.documents?.length || 0}
+                                </span>
+                              </div>
 
                               {!po.documents?.length ? (
-                                <p className="text-xs text-zinc-500">
+                                <p className="rounded-lg border border-dashed border-zinc-800 p-4 text-center text-xs text-zinc-500">
                                   No documents attached.
                                 </p>
                               ) : (
-                                <div className="space-y-2">
-                                  {po.documents.map((doc) => {
+                                <div className="overflow-hidden rounded-lg border border-zinc-800">
+                                  {po.documents.map((doc, docIndex) => {
                                     const isDeletingDocument =
                                       deletingDocumentId ===
                                       `${po._id}:${doc._id}`;
@@ -786,22 +1075,34 @@ export default function ProjectDetailsModal({ projectId, onClose }) {
                                     return (
                                       <div
                                         key={doc._id}
-                                        className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-zinc-800 bg-zinc-950 p-3"
+                                        className={`flex flex-col gap-3 bg-zinc-950/70 p-3 sm:flex-row sm:items-center sm:justify-between ${
+                                          docIndex !== po.documents.length - 1
+                                            ? "border-b border-zinc-800"
+                                            : ""
+                                        }`}
                                       >
-                                        <div className="min-w-0">
-                                          <p className="break-all text-sm text-zinc-200">
-                                            {doc.originalName}
-                                          </p>
+                                        <div className="flex min-w-0 items-center gap-3">
+                                          <div className="rounded-lg bg-blue-500/10 p-2">
+                                            <FileText
+                                              size={17}
+                                              className="text-blue-400"
+                                            />
+                                          </div>
 
-                                          <p className="mt-1 text-xs text-zinc-500">
-                                            {doc.mimeType || "Unknown type"}
-                                            {" · "}
-                                            {formatFileSize(doc.size)}
-                                          </p>
+                                          <div className="min-w-0">
+                                            <p className="break-all text-sm text-zinc-200">
+                                              {doc.originalName}
+                                            </p>
+
+                                            <p className="mt-1 text-xs text-zinc-500">
+                                              {doc.mimeType || "Unknown type"}
+                                              {" · "}
+                                              {formatFileSize(doc.size)}
+                                            </p>
+                                          </div>
                                         </div>
 
-                                        <div className="flex shrink-0 flex-wrap items-center gap-4">
-                                          {/* View */}
+                                        <div className="flex shrink-0 flex-wrap items-center gap-3">
                                           <a
                                             href={getDocumentUrl(
                                               po._id,
@@ -812,11 +1113,10 @@ export default function ProjectDetailsModal({ projectId, onClose }) {
                                             rel="noopener noreferrer"
                                             className="flex items-center gap-1.5 text-sm text-emerald-400 transition hover:text-emerald-300"
                                           >
-                                            <Eye size={16} />
+                                            <Eye size={15} />
                                             View
                                           </a>
 
-                                          {/* Download */}
                                           <a
                                             href={getDocumentUrl(
                                               po._id,
@@ -825,11 +1125,10 @@ export default function ProjectDetailsModal({ projectId, onClose }) {
                                             )}
                                             className="flex items-center gap-1.5 text-sm text-blue-400 transition hover:text-blue-300"
                                           >
-                                            <Download size={16} />
+                                            <Download size={15} />
                                             Download
                                           </a>
 
-                                          {/* Delete Document */}
                                           <button
                                             type="button"
                                             onClick={() =>
@@ -865,30 +1164,54 @@ export default function ProjectDetailsModal({ projectId, onClose }) {
                   )}
                 </section>
 
+                <div className="border-t border-zinc-800" />
+
                 {/* Finance Information */}
-                <Section title="Finance Information" icon={Wallet}>
-                  <Detail
-                    label="Finance Documents"
-                    value={project.financeData?.documents?.length ?? 0}
+                <section className="space-y-4">
+                  <div className="flex items-center gap-3 border-b border-zinc-800 pb-3">
+                    <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-2">
+                      <Wallet size={17} className="text-emerald-400" />
+                    </div>
+
+                    <h3 className="font-semibold text-white">
+                      Finance Information
+                    </h3>
+                  </div>
+
+                  <DocumentList
+                    title="Finance Documents"
+                    documents={project.financeData?.documents || []}
                   />
-                </Section>
+                </section>
 
                 {/* Additional Information */}
                 {project.others &&
                   Object.keys(project.others).length > 0 && (
-                    <Section title="Additional Information" icon={Hash}>
-                      {Object.entries(project.others).map(([key, value]) => (
-                        <Detail key={key} label={key} value={value} />
-                      ))}
-                    </Section>
+                    <>
+                      <div className="border-t border-zinc-800" />
+
+                      <Section
+                        title="Additional Information"
+                        icon={Hash}
+                      >
+                        {Object.entries(project.others).map(([key, value]) => (
+                          <Detail key={key} label={key} value={value} />
+                        ))}
+                      </Section>
+                    </>
                   )}
 
                 {/* Create Purchase Order */}
-                <section className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-5">
+                <div className="border-t border-zinc-800" />
+
+                <section className="rounded-xl border border-emerald-500/20 bg-gradient-to-br from-emerald-500/10 to-zinc-900/40 p-5">
                   <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
                     <div className="flex items-start gap-3">
-                      <div className="rounded-lg bg-emerald-500/10 p-2.5">
-                        <ShoppingCart className="text-emerald-400" size={22} />
+                      <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-2.5">
+                        <ShoppingCart
+                          className="text-emerald-400"
+                          size={22}
+                        />
                       </div>
 
                       <div>
@@ -903,6 +1226,7 @@ export default function ProjectDetailsModal({ projectId, onClose }) {
                     </div>
 
                     <button
+                      type="button"
                       onClick={handleCreatePO}
                       className="flex shrink-0 items-center justify-center gap-2 rounded-lg bg-emerald-500 px-4 py-2.5 text-sm font-semibold text-zinc-950 transition hover:bg-emerald-400"
                     >
@@ -921,10 +1245,11 @@ export default function ProjectDetailsModal({ projectId, onClose }) {
           </div>
 
           {/* Footer */}
-          <div className="flex justify-end border-t border-zinc-800 px-5 py-4">
+          <div className="flex justify-end border-t border-zinc-800 bg-zinc-950 px-5 py-4">
             <button
+              type="button"
               onClick={onClose}
-              className="rounded-lg bg-zinc-800 px-5 py-2 text-sm font-medium text-white transition hover:bg-zinc-700"
+              className="rounded-lg border border-zinc-700 bg-zinc-800 px-5 py-2 text-sm font-medium text-white transition hover:bg-zinc-700"
             >
               Close
             </button>
@@ -932,7 +1257,7 @@ export default function ProjectDetailsModal({ projectId, onClose }) {
         </div>
       </div>
 
-      {/* Component animations */}
+      {/* Component Animations */}
       <style>{`
         @keyframes toastIn {
           from {

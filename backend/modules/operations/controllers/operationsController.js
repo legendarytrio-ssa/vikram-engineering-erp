@@ -510,3 +510,23 @@ export const removeQCReport = wrapAsync(
     });
   }
 );
+
+// @desc    Get a specific Sales document URL for a project
+// @route   GET /api/operations/projects/:projectId/sales-documents/:documentId/url
+// @access  Private
+export const getSalesDocumentUrl = wrapAsync(async (req, res) => {
+  const { projectId, documentId } = req.params;
+
+  const disposition = req.query.disposition || "inline";
+
+  const result = await operationService.getSalesDocumentUrl(
+    projectId,
+    documentId,
+    disposition
+  );
+
+  res.status(200).json({
+    success: true,
+    data: result,
+  });
+});
