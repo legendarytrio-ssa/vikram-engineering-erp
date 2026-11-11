@@ -11,8 +11,10 @@ import {
   FileCheck2,
   FilePlus2,
   FileText,
+  FolderKanban,
   FolderOpen,
   Loader2,
+  MessageSquare,
   Paperclip,
   Phone,
   Plus,
@@ -27,6 +29,7 @@ import {
 
 import Header from "../components/landing/Header";
 import Metric from "../components/landing/Metric";
+import ProjectChatModal from "../components/ProjectChatModal";
 import salesApi from "../services/salesApi";
 
 const PAGE_SIZE = 9;
@@ -233,6 +236,48 @@ function ClientCard({ client, onOpen }) {
         />
       </span>
     </button>
+  );
+}
+
+function ProjectCard({ project, onJoinChat }) {
+  const clientName = project.client?.name;
+  const tenderTitle = project.tender?.title;
+
+  return (
+    <div className="group flex flex-col rounded-2xl border border-zinc-800 bg-zinc-900/70 p-4 transition hover:border-emerald-500/30 hover:bg-zinc-900">
+      <span className="flex items-start justify-between gap-2">
+        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-zinc-800 bg-zinc-950 text-zinc-400 transition group-hover:text-emerald-400">
+          <FolderKanban size={17} />
+        </span>
+        <span className="rounded-full border border-emerald-500/25 bg-emerald-500/10 px-2.5 py-1 text-[10px] font-semibold tracking-[0.08em] text-emerald-300">
+          {project.status || "ACTIVE"}
+        </span>
+      </span>
+
+      <span className="mt-4 line-clamp-2 text-sm font-semibold leading-5 text-zinc-100">
+        {project.projectName || "Untitled project"}
+      </span>
+      <span className="mt-1 truncate font-mono text-[11px] text-zinc-500">
+        {project.projectCode}
+      </span>
+
+      <span className="mt-4 flex items-center justify-between gap-2 border-t border-zinc-800/70 pt-3">
+        <span
+          className="min-w-0 truncate text-[11px] text-zinc-500"
+          title={clientName || tenderTitle || ""}
+        >
+          {clientName || tenderTitle || "Project workspace"}
+        </span>
+        <button
+          type="button"
+          onClick={onJoinChat}
+          className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-[11px] font-semibold text-white transition hover:bg-emerald-500"
+        >
+          <MessageSquare size={12} />
+          Join chat
+        </button>
+      </span>
+    </div>
   );
 }
 
@@ -500,13 +545,16 @@ export default function HomePage() {
 
   const [tenders, setTenders] = useState([]);
   const [clients, setClients] = useState([]);
+  const [projects, setProjects] = useState([]);
 
   const [tendersLoading, setTendersLoading] = useState(true);
   const [clientsLoading, setClientsLoading] = useState(true);
+  const [projectsLoading, setProjectsLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
 
   const [activeTenderId, setActiveTenderId] = useState(null);
   const [activeClientId, setActiveClientId] = useState(null);
+  const [activeProjectCode, setActiveProjectCode] = useState(null);
   const [busyKey, setBusyKey] = useState(null);
 
   const [tenderQuery, setTenderQuery] = useState("");
@@ -520,14 +568,15 @@ export default function HomePage() {
   const [poFileSelections, setPoFileSelections] = useState({});
 
   const fetchAll = useCallback(async () => {
-    const [tenderResult, clientResult] = await Promise.allSettled([
+    const [tenderResult, clientResult, projectResult] = await Promise.allSettled([
       salesApi.get("/tenders/getTenders"),
-      salesApi.get("/clients/getAllClients")
+      salesApi.get("/clients/getAllClients"),
+      salesApi.get("/projects")
     ]);
-    return { tenderResult, clientResult };
+    return { tenderResult, clientResult, projectResult };
   }, []);
 
-  const applyResults = useCallback(({ tenderResult, clientResult }) => {
+  const applyResults = useCallback(({ tenderResult, clientResult, projectResult }) => {
     if (tenderResult.status === "fulfilled") {
       setTenders(tenderResult.value.data);
     } else {
@@ -540,11 +589,20 @@ export default function HomePage() {
       console.error(clientResult.reason);
     }
 
+    if (projectResult.status === "fulfilled") {
+      setProjects(projectResult.value.data);
+    } else {
+      console.error(projectResult.reason);
+    }
+
     setLoadError(
-      tenderResult.status === "rejected" || clientResult.status === "rejected"
+      tenderResult.status === "rejected" ||
+        clientResult.status === "rejected" ||
+        projectResult.status === "rejected"
     );
     setTendersLoading(false);
     setClientsLoading(false);
+    setProjectsLoading(false);
   }, []);
 
   useEffect(() => {
@@ -560,12 +618,15 @@ export default function HomePage() {
   const handleRefresh = async () => {
     setTendersLoading(true);
     setClientsLoading(true);
+    setProjectsLoading(true);
     setLoadError(false);
     applyResults(await fetchAll());
   };
 
   const activeTender = tenders.find((t) => t._id === activeTenderId) || null;
   const activeClient = clients.find((c) => c._id === activeClientId) || null;
+  const activeProject =
+    projects.find((p) => p.projectCode === activeProjectCode) || null;
   const isDrawerOpen = Boolean(activeTender || activeClient);
 
   useEffect(() => {
@@ -588,7 +649,7 @@ export default function HomePage() {
     };
   }, [isDrawerOpen]);
 
-  const isRefreshing = tendersLoading || clientsLoading;
+  const isRefreshing = tendersLoading || clientsLoading || projectsLoading;
 
   // --- DOWNLOAD HANDLER ---
   const handleDownloadFile = async (routePrefix, fileKey, originalName) => {
@@ -1037,6 +1098,50 @@ export default function HomePage() {
           )}
         </section>
 
+        {/* --- PROJECTS / CHATROOMS SECTION --- */}
+        <section className="mb-14 border-t border-zinc-800 pt-7">
+          <SectionHeading
+            eyebrow="Workspaces"
+            accent="text-emerald-500"
+            title="Project chat rooms"
+            meta={
+              projectsLoading ? (
+                <LoadingChip label="Loading projects…" />
+              ) : (
+                <span className="text-xs tabular-nums text-zinc-500">
+                  {projects.length} active
+                </span>
+              )
+            }
+          />
+
+          <p className="mb-4 text-xs leading-5 text-zinc-500">
+            Every project has a room named after its project code. Join with your
+            name and email to start chatting with the project team.
+          </p>
+
+          {projectsLoading ? (
+            <CardGridSkeleton count={3} />
+          ) : projects.length === 0 ? (
+            <EmptyState
+              icon={<FolderKanban size={21} />}
+              tone="bg-emerald-500/10 text-emerald-400"
+              title="No active projects yet"
+              description="Convert a won tender into a project and it will get its own chat room here."
+            />
+          ) : (
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {projects.map((project) => (
+                <ProjectCard
+                  key={project._id}
+                  project={project}
+                  onJoinChat={() => setActiveProjectCode(project.projectCode)}
+                />
+              ))}
+            </div>
+          )}
+        </section>
+
         {/* --- CLIENTS SECTION --- */}
         <section className="border-t border-zinc-800 pt-7">
           <SectionHeading
@@ -1222,6 +1327,13 @@ export default function HomePage() {
             />
           </div>
         </Drawer>
+      )}
+
+      {activeProject && (
+        <ProjectChatModal
+          project={activeProject}
+          onClose={() => setActiveProjectCode(null)}
+        />
       )}
     </main>
   );
