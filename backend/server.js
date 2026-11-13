@@ -1,3 +1,4 @@
+
 import "dotenv/config";
 
 import express from "express";
@@ -8,10 +9,9 @@ import { connectDB } from "./config/mongoDB.js";
 // Department routes
 import salesRoutes from "./modules/sales/routes/index.js";
 import financeRoutes from "./modules/finance/routes/financeRoutes.js";
-// Adjust the path to match where you placed the operations folder 
-// (e.g., "./modules/operations/routes/operationsRoutes.js" if you put it inside modules)
-import operationsRoutes from "./modules/operations/routes/operationsRoutes.js"; 
-import projectRoutes from "./routes/projectRoutes.js"
+import operationsRoutes from "./modules/operations/routes/operationsRoutes.js";
+import projectRoutes from "./routes/projectRoutes.js";
+
 import Project from "./models/Project.js";
 import { createChatRouter } from "./utils/chat-kit/index.js";
 
@@ -19,8 +19,14 @@ dns.setServers(["1.1.1.1", "0.0.0.0"]);
 
 const app = express();
 
-// Middleware
+// =======================
+// MIDDLEWARE
+// =======================
+
+// Allow requests from all origins
 app.use(cors());
+
+// Parse JSON request bodies
 app.use(express.json());
 
 // Initialize MongoDB
@@ -36,14 +42,14 @@ app.use("/api/sales", salesRoutes);
 // =======================
 app.use("/api/operations", operationsRoutes);
 
-/// ======================
-/// FINANCE DEPARTMENT ROUTES
-/// ======================
+// =======================
+// FINANCE DEPARTMENT ROUTES
+// =======================
 app.use("/api/finance", financeRoutes);
 
-/// ======================
-/// Project ROUTES
-/// ======================
+// =======================
+// PROJECT ROUTES
+// =======================
 app.use("/api", projectRoutes);
 
 // =======================
@@ -56,8 +62,12 @@ if (process.env.STREAM_API_KEY && process.env.STREAM_API_SECRET) {
       apiKey: process.env.STREAM_API_KEY,
       apiSecret: process.env.STREAM_API_SECRET,
       roomIdPrefix: "project",
+
       async getRoomMeta({ roomId }) {
-        const projectCode = String(roomId ?? "").trim().toUpperCase();
+        const projectCode = String(roomId ?? "")
+          .trim()
+          .toUpperCase();
+
         const project = await Project.findOne({ projectCode })
           .select("projectCode")
           .lean();
@@ -73,7 +83,9 @@ if (process.env.STREAM_API_KEY && process.env.STREAM_API_SECRET) {
     })
   );
 } else {
-  console.warn("Stream Chat disabled: STREAM_API_KEY / STREAM_API_SECRET not set");
+  console.warn(
+    "Stream Chat disabled: STREAM_API_KEY / STREAM_API_SECRET not set"
+  );
 }
 
 // =======================
@@ -90,19 +102,25 @@ app.get("/health", (req, res) => {
   });
 });
 
-// Global Error Handling Middleware
+// =======================
+// GLOBAL ERROR HANDLING
+// =======================
 app.use((err, req, res, next) => {
   console.error(err.stack);
-  // Mongoose validation errors should be 400 Bad Request
-  const statusCode = err.name === 'ValidationError' ? 400 : 500;
-  res.status(statusCode).json({ 
-    error: err.message || "Internal Server Error" 
+
+  const statusCode =
+    err.name === "ValidationError" ? 400 : (err.status || 500);
+
+  res.status(statusCode).json({
+    error: err.message || "Internal Server Error",
   });
 });
 
-// Start Server
+// =======================
+// START SERVER
+// =======================
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
+  console.log(`Server running on port ${PORT}`);
 });
