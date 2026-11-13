@@ -471,7 +471,7 @@ export default function CEODashboard() {
       setTenders(tenderData);
 
       // Replace with your actual configured axios instance if needed
-      const projectRes = await axios.get("http://localhost:3000/api/operations/projects");
+      const projectRes = await axios.get("https://vikram-engineering-erp.vercel.app/api/operations/projects");
       const projectData = Array.isArray(projectRes.data) ? projectRes.data : projectRes.data?.data || [];
       setProjects(projectData);
     } catch (error) {
@@ -523,7 +523,7 @@ export default function CEODashboard() {
     setIsUploading(true);
     try {
       // Point this to wherever you mounted the new Project file upload route
-      const res = await axios.post(`http://localhost:3000/api/projects/${projectId}/files`, formData);
+      const res = await axios.post(`https://vikram-engineering-erp.vercel.app/api/projects/${projectId}/files`, formData);
 
       // Update the projects state to instantly show the new file
       setProjects(prev => prev.map(p => p._id === projectId ? res.data : p));
